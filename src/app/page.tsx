@@ -19,8 +19,9 @@ import {
   Sparkles,
   RefreshCw,
   PlusSquare,
+  LineChart as LineChartIcon,
 } from "lucide-react";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -56,7 +57,6 @@ import type {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -86,6 +86,7 @@ export default function Home() {
     content: "",
   });
   const [isEnhancementOpen, setIsEnhancementOpen] = useState(false);
+  const [quizHistory, setQuizHistory] = useState<{ score: number; total: number }[]>([]);
 
   const { toast } = useToast();
 
@@ -98,6 +99,7 @@ export default function Home() {
 
   const handleStartQuiz = async (data: WordInputForm) => {
     setQuizState("loading");
+    setQuizHistory([]); // Reset history for new words
     const words = data.words
       .split(/,?\s+/)
       .map((w) => w.trim())
@@ -145,20 +147,23 @@ export default function Home() {
   };
 
   const handleSelfEvaluation = (correct: boolean) => {
+    const newScore = correct ? score + 1 : score;
     if (correct) {
-      setScore(score + 1);
+      setScore(newScore);
     }
     if (currentIndex < definitions.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setUserAnswer("");
       setAnswerState("answering");
     } else {
+      setQuizHistory([...quizHistory, { score: newScore, total: definitions.length }]);
       setQuizState("results");
     }
   };
 
   const handleNewQuiz = () => {
     form.reset();
+    setQuizHistory([]);
     setQuizState("input");
   };
 
@@ -364,11 +369,17 @@ export default function Home() {
           </motion.div>
         );
       case "results":
-        const incorrect = definitions.length - score;
+        const latestResult = quizHistory[quizHistory.length - 1] || { score: 0, total: definitions.length };
+        const incorrect = latestResult.total - latestResult.score;
         const chartData = [
-          { name: "Correct", value: score, fill: "hsl(var(--chart-1))" },
+          { name: "Correct", value: latestResult.score, fill: "hsl(var(--chart-1))" },
           { name: "Incorrect", value: incorrect, fill: "hsl(var(--destructive))" },
         ];
+        const historyChartData = quizHistory.map((result, index) => ({
+            name: `Quiz ${index + 1}`,
+            Score: result.score,
+        }));
+
         return (
           <motion.div
             key="results"
@@ -382,7 +393,7 @@ export default function Home() {
                 </div>
                 <CardTitle className="font-headline text-3xl mt-4">Quiz Complete!</CardTitle>
                 <CardDescription>
-                  You scored {score} out of {definitions.length}.
+                  You scored {latestResult.score} out of {latestResult.total}.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -395,6 +406,23 @@ export default function Home() {
                     </BarChart>
                 </ResponsiveContainer>
                 </div>
+                {quizHistory.length > 1 && (
+                  <div className="mt-8">
+                    <h3 className="text-xl font-headline mb-4 flex items-center justify-center gap-2"><LineChartIcon className="h-6 w-6 text-primary"/>Progress History</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={historyChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis allowDecimals={false} domain={[0, definitions.length]}/>
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="Score" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="flex-col sm:flex-row gap-4">
                 <Button onClick={handleStudyAgain} className="w-full" size="lg" variant="secondary">
@@ -436,7 +464,7 @@ export default function Home() {
                 <span>Loading...</span>
               </div>
             ) : (
-                <div className="text-sm text-muted-foreground">{enhancementContent.content}</div>
+              <div className="text-sm text-muted-foreground">{enhancementContent.content}</div>
             )}
           </div>
         </DialogContent>
