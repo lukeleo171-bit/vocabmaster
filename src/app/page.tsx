@@ -60,6 +60,16 @@ import {
 
 type WordInputForm = z.infer<typeof wordInputSchema>;
 
+// Function to shuffle an array
+const shuffleArray = <T,>(array: T[]): T[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+};
+
 export default function Home() {
   const [quizState, setQuizState] = useState<QuizState>("input");
   const [answerState, setAnswerState] = useState<QuizAnswerState>("answering");
@@ -102,7 +112,7 @@ export default function Home() {
 
     try {
       const defs = await getQuizDefinitionsAction(words);
-      setDefinitions(defs);
+      setDefinitions(shuffleArray(defs));
       setCurrentIndex(0);
       setScore(0);
       setUserAnswer("");
