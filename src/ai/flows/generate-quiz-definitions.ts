@@ -44,9 +44,9 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateQuizDefinitionsOutputSchema},
   prompt: `You are an expert vocabulary tutor. Provide clear and concise definitions for the following words:
 
-{% for word in words %}
-- {{word}}
-{% endfor %}
+{{#each words}}
+- {{this}}
+{{/each}}
 
 Return the definitions in the following JSON format:
 
