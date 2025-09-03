@@ -56,7 +56,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 
 type WordInputForm = z.infer<typeof wordInputSchema>;
@@ -403,7 +402,7 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle>{enhancementContent.title}</DialogTitle>
           </DialogHeader>
-          <DialogDescription className="max-h-[60vh] overflow-y-auto pr-4">
+          <div className="text-sm text-muted-foreground max-h-[60vh] overflow-y-auto pr-4">
             {isEnhancementLoading ? (
               <div className="flex items-center gap-2">
                 <Loader className="h-4 w-4 animate-spin"/>
@@ -412,7 +411,7 @@ export default function Home() {
             ) : (
                 enhancementContent.content
             )}
-          </DialogDescription>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
