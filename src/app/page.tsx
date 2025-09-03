@@ -17,6 +17,8 @@ import {
   Award,
   BookMarked,
   Sparkles,
+  RefreshCw,
+  PlusSquare,
 } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
@@ -54,6 +56,7 @@ import type {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -154,9 +157,18 @@ export default function Home() {
     }
   };
 
-  const handleRestart = () => {
+  const handleNewQuiz = () => {
     form.reset();
     setQuizState("input");
+  };
+
+  const handleStudyAgain = () => {
+    setDefinitions(shuffleArray(definitions));
+    setCurrentIndex(0);
+    setScore(0);
+    setUserAnswer("");
+    setAnswerState("answering");
+    setQuizState("quiz");
   };
 
   const handleEnhancementRequest = async (type: EnhancementType) => {
@@ -384,9 +396,14 @@ export default function Home() {
                 </ResponsiveContainer>
                 </div>
               </CardContent>
-              <CardFooter>
-                <Button onClick={handleRestart} className="w-full" size="lg">
-                  Study Again
+              <CardFooter className="flex-col sm:flex-row gap-4">
+                <Button onClick={handleStudyAgain} className="w-full" size="lg" variant="secondary">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Study Same Words
+                </Button>
+                <Button onClick={handleNewQuiz} className="w-full" size="lg">
+                  <PlusSquare className="mr-2 h-4 w-4" />
+                  New Quiz
                 </Button>
               </CardFooter>
             </Card>
@@ -412,14 +429,14 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle>{enhancementContent.title}</DialogTitle>
           </DialogHeader>
-          <div className="text-sm text-muted-foreground max-h-[60vh] overflow-y-auto pr-4">
+          <div className="max-h-[60vh] overflow-y-auto pr-4">
             {isEnhancementLoading ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader className="h-4 w-4 animate-spin"/>
                 <span>Loading...</span>
               </div>
             ) : (
-                enhancementContent.content
+                <div className="text-sm text-muted-foreground">{enhancementContent.content}</div>
             )}
           </div>
         </DialogContent>
