@@ -54,6 +54,7 @@ import type {
   QuizAnswerState,
   QuizItem,
   QuizState,
+  PastQuiz,
 } from "@/types/quiz";
 import {
   Dialog,
@@ -91,10 +92,17 @@ export default function Home() {
   });
   const [isEnhancementOpen, setIsEnhancementOpen] = useState(false);
   const [quizHistory, setQuizHistory] = useState<{ score: number; total: number }[]>([]);
-  const [pastQuizzes, setPastQuizzes] = useState<string[][]>([]);
-  const [suggestions, setSuggestions] = useState<string[][]>([]);
+  const [pastQuizzes, setPastQuizzes] = useState<PastQuiz[]>([]);
+  const [suggestions, setSuggestions] = useState<PastQuiz[]>([]);
 
   const { toast } = useToast();
+
+  const form = useForm<WordInputForm>({
+    resolver: zodResolver(wordInputSchema),
+    defaultValues: {
+      words: "",
+    },
+  });
 
   useEffect(() => {
     try {
@@ -107,16 +115,8 @@ export default function Home() {
     }
   }, []);
 
-  const form = useForm<WordInputForm>({
-    resolver: zodResolver(wordInputSchema),
-    defaultValues: {
-      words: "",
-    },
-  });
-
   const handleStartQuiz = async (data: WordInputForm) => {
     setQuizState("loading");
-    setQuizHistory([]); // Reset history for new words
     const words = data.words
       .split(/,?\s+/)
       .map((w) => w.trim())
@@ -131,10 +131,21 @@ export default function Home() {
       });
       return;
     }
+
+    const wordsKey = JSON.stringify(words.sort());
+    const existingQuiz = pastQuizzes.find(p => JSON.stringify(p.words.sort()) === wordsKey);
+    setQuizHistory(existingQuiz ? existingQuiz.history : []);
     
     // Save to history
     try {
-      const newHistory = [words, ...pastQuizzes.filter(p => JSON.stringify(p) !== JSON.stringify(words))].slice(0, MAX_HISTORY_ITEMS);
+      let newHistory: PastQuiz[] = [...pastQuizzes];
+      if (!existingQuiz) {
+        newHistory = [{ words, history: [] }, ...pastQuizzes].slice(0, MAX_HISTORY_ITEMS);
+      } else {
+        // Move the existing quiz to the top of the list
+        newHistory = [existingQuiz, ...pastQuizzes.filter(p => JSON.stringify(p.words.sort()) !== wordsKey)];
+      }
+
       setPastQuizzes(newHistory);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newHistory));
     } catch (error) {
@@ -183,7 +194,22 @@ export default function Home() {
       setUserAnswer("");
       setAnswerState("answering");
     } else {
-      setQuizHistory([...quizHistory, { score: newScore, total: definitions.length }]);
+      const newResult = { score: newScore, total: definitions.length };
+      const updatedHistory = [...quizHistory, newResult];
+      setQuizHistory(updatedHistory);
+
+      try {
+        const wordsKey = JSON.stringify(definitions.map(d => d.word).sort());
+        const updatedPastQuizzes = pastQuizzes.map(p => 
+          JSON.stringify(p.words.sort()) === wordsKey 
+            ? { ...p, history: updatedHistory } 
+            : p
+        );
+        setPastQuizzes(updatedPastQuizzes);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPastQuizzes));
+      } catch (error) {
+        console.error("Could not update quiz history in localStorage", error);
+      }
       setQuizState("results");
     }
   };
@@ -237,7 +263,7 @@ export default function Home() {
       const inputWords = value.toLowerCase().split(/,?\s+/);
       const matchingQuizzes = pastQuizzes.filter(quiz => 
         inputWords.every(inputWord => 
-          quiz.some(quizWord => quizWord.toLowerCase().startsWith(inputWord))
+          quiz.words.some(quizWord => quizWord.toLowerCase().startsWith(inputWord))
         )
       );
       setSuggestions(matchingQuizzes);
@@ -246,8 +272,8 @@ export default function Home() {
     }
   };
 
-  const handleSuggestionClick = (words: string[]) => {
-    form.setValue("words", words.join(", "));
+  const handleSuggestionClick = (quiz: PastQuiz) => {
+    form.setValue("words", quiz.words.join(", "));
     setSuggestions([]);
   };
   
@@ -314,7 +340,7 @@ export default function Home() {
                               className="w-full justify-start h-auto text-left"
                               onClick={() => handleSuggestionClick(quiz)}
                             >
-                              <p className="truncate text-sm text-muted-foreground">{quiz.join(', ')}</p>
+                              <p className="truncate text-sm text-muted-foreground">{quiz.words.join(', ')}</p>
                             </Button>
                           ))}
                         </div>

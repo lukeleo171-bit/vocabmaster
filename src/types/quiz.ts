@@ -8,3 +8,8 @@ export type QuizState = "input" | "loading" | "quiz" | "results";
 export type QuizAnswerState = "answering" | "evaluating";
 
 export type EnhancementType = "more detail" | "examples" | "context";
+
+export type PastQuiz = {
+  words: string[];
+  history: { score: number; total: number }[];
+};
