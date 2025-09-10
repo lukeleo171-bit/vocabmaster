@@ -177,7 +177,7 @@ export default function Home() {
 
       setPastQuizzes(newHistory);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newHistory));
-    } catch (error) => {
+    } catch (error) {
       console.error("Could not save quiz history to localStorage", error);
     }
 
