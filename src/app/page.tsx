@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
@@ -19,6 +19,7 @@ import {
   Sparkles,
   RefreshCw,
   PlusSquare,
+  History,
   LineChart as LineChartIcon,
 } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -73,6 +74,9 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     return newArray;
 };
 
+const MAX_HISTORY_ITEMS = 5;
+const LOCAL_STORAGE_KEY = "vocabMasterHistory";
+
 export default function Home() {
   const [quizState, setQuizState] = useState<QuizState>("input");
   const [answerState, setAnswerState] = useState<QuizAnswerState>("answering");
@@ -87,8 +91,21 @@ export default function Home() {
   });
   const [isEnhancementOpen, setIsEnhancementOpen] = useState(false);
   const [quizHistory, setQuizHistory] = useState<{ score: number; total: number }[]>([]);
+  const [pastQuizzes, setPastQuizzes] = useState<string[][]>([]);
+  const [suggestions, setSuggestions] = useState<string[][]>([]);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    try {
+      const storedHistory = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedHistory) {
+        setPastQuizzes(JSON.parse(storedHistory));
+      }
+    } catch (error) {
+      console.error("Could not load quiz history from localStorage", error);
+    }
+  }, []);
 
   const form = useForm<WordInputForm>({
     resolver: zodResolver(wordInputSchema),
@@ -114,6 +131,16 @@ export default function Home() {
       });
       return;
     }
+    
+    // Save to history
+    try {
+      const newHistory = [words, ...pastQuizzes.filter(p => JSON.stringify(p) !== JSON.stringify(words))].slice(0, MAX_HISTORY_ITEMS);
+      setPastQuizzes(newHistory);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newHistory));
+    } catch (error) {
+      console.error("Could not save quiz history to localStorage", error);
+    }
+
 
     try {
       const defs = await getQuizDefinitionsAction(words);
@@ -165,6 +192,7 @@ export default function Home() {
     form.reset();
     setQuizHistory([]);
     setQuizState("input");
+    setSuggestions([]);
   };
 
   const handleStudyAgain = () => {
@@ -203,6 +231,33 @@ export default function Home() {
     }
   };
 
+  const handleWordInputChange = (value: string) => {
+    form.setValue("words", value);
+    if (value.trim().length > 0) {
+      const inputWords = value.toLowerCase().split(/,?\s+/);
+      const matchingQuizzes = pastQuizzes.filter(quiz => 
+        inputWords.every(inputWord => 
+          quiz.some(quizWord => quizWord.toLowerCase().startsWith(inputWord))
+        )
+      );
+      setSuggestions(matchingQuizzes);
+    } else {
+      setSuggestions(pastQuizzes);
+    }
+  };
+
+  const handleSuggestionClick = (words: string[]) => {
+    form.setValue("words", words.join(", "));
+    setSuggestions([]);
+  };
+  
+  useEffect(() => {
+    if(quizState === 'input') {
+      setSuggestions(pastQuizzes);
+    }
+  }, [quizState, pastQuizzes]);
+
+
   const renderContent = () => {
     switch (quizState) {
       case "input":
@@ -212,22 +267,23 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            className="w-full max-w-2xl"
           >
-            <Card className="w-full max-w-2xl">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
                   <BookType className="text-primary" />
                   Enter Your Vocabulary
                 </CardTitle>
                 <CardDescription>
-                  Enter your vocabulary words, separated by commas or spaces.
+                  Enter your vocabulary words, separated by commas or spaces. Or select a recent quiz.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
                   <form
                     onSubmit={form.handleSubmit(handleStartQuiz)}
-                    className="space-y-6"
+                    className="space-y-4"
                   >
                     <FormField
                       control={form.control}
@@ -240,12 +296,30 @@ export default function Home() {
                               placeholder="e.g., egregious, ephemeral, esoteric"
                               className="min-h-[150px] resize-y"
                               {...field}
+                              onChange={(e) => handleWordInputChange(e.target.value)}
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                     {suggestions.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><History className="h-4 w-4" />Recent Quizzes</h4>
+                        <div className="max-h-40 overflow-y-auto space-y-2 rounded-md border p-2">
+                          {suggestions.map((quiz, index) => (
+                            <Button
+                              key={index}
+                              variant="ghost"
+                              className="w-full justify-start h-auto text-left"
+                              onClick={() => handleSuggestionClick(quiz)}
+                            >
+                              <p className="truncate text-sm text-muted-foreground">{quiz.join(', ')}</p>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <Button type="submit" className="w-full" size="lg">
                       Start Quiz <ArrowRight className="ml-2" />
                     </Button>
