@@ -7,6 +7,12 @@ import {
   generateQuizDefinitions,
 } from "@/ai/flows/generate-quiz-definitions";
 import type { EnhancementType, QuizItem } from "@/types/quiz";
+import {
+  evaluateAnswer,
+  type EvaluateAnswerInput,
+  type EvaluateAnswerOutput,
+} from '@/ai/flows/evaluate-answer';
+
 
 export async function getQuizDefinitionsAction(
   words: string[]
@@ -41,5 +47,16 @@ export async function getEnhancedExplanationAction(
   } catch (error) {
     console.error("Error enhancing definition:", error);
     throw new Error("Failed to get enhancement. Please try again.");
+  }
+}
+
+export async function evaluateAnswerAction(
+  input: EvaluateAnswerInput
+): Promise<EvaluateAnswerOutput> {
+  try {
+    return await evaluateAnswer(input);
+  } catch (error) {
+    console.error("Error evaluating answer:", error);
+    throw new Error("Failed to evaluate answer. Please try again.");
   }
 }

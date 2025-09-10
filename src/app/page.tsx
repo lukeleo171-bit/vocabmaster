@@ -51,6 +51,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   getEnhancedExplanationAction,
   getQuizDefinitionsAction,
+  evaluateAnswerAction,
 } from "@/lib/actions";
 import { wordInputSchema } from "@/lib/schema";
 import type {
@@ -101,6 +102,8 @@ export default function Home() {
   const [pastQuizzes, setPastQuizzes] = useState<PastQuiz[]>([]);
   const [suggestions, setSuggestions] = useState<PastQuiz[]>([]);
   const [wordResults, setWordResults] = useState<WordResult[]>([]);
+  const [evaluationResult, setEvaluationResult] = useState<{ isCorrect: boolean; feedback: string } | null>(null);
+
 
   const { toast } = useToast();
 
@@ -174,7 +177,7 @@ export default function Home() {
 
       setPastQuizzes(newHistory);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newHistory));
-    } catch (error) {
+    } catch (error) => {
       console.error("Could not save quiz history to localStorage", error);
     }
 
@@ -192,7 +195,7 @@ export default function Home() {
     }
   };
 
-  const handleAnswerSubmit = () => {
+  const handleAnswerSubmit = async () => {
     if (userAnswer.trim() === "") {
       toast({
         title: "Empty Answer",
@@ -202,16 +205,34 @@ export default function Home() {
       return;
     }
     setAnswerState("evaluating");
+    try {
+      const currentQuizItem = definitions[currentIndex];
+      const result = await evaluateAnswerAction({
+        word: currentQuizItem.word,
+        userAnswer: userAnswer,
+        correctDefinition: currentQuizItem.definition,
+      });
+      setEvaluationResult(result);
+      const newScore = result.isCorrect ? score + 1 : score;
+      if (result.isCorrect) {
+        setScore(newScore);
+      }
+      const updatedResults = [...wordResults];
+      updatedResults[currentIndex].definitionCorrect = result.isCorrect;
+      setWordResults(updatedResults);
+    } catch (error) {
+      toast({
+        title: "Evaluation Error",
+        description: "Could not evaluate your answer. Please proceed with self-evaluation.",
+        variant: "destructive",
+      });
+      // Fallback to self-evaluation UI if API fails
+      setEvaluationResult({ isCorrect: false, feedback: 'Error evaluating answer.' });
+    }
   };
 
-  const handleSelfEvaluation = (correct: boolean) => {
-    const newScore = correct ? score + 1 : score;
-    if (correct) {
-      setScore(newScore);
-    }
-    const updatedResults = [...wordResults];
-    updatedResults[currentIndex].definitionCorrect = correct;
-    setWordResults(updatedResults);
+  const handleNextAfterEvaluation = () => {
+    setEvaluationResult(null);
     setAnswerState("spelling");
   };
 
@@ -314,9 +335,12 @@ export default function Home() {
   
   useEffect(() => {
     if(quizState === 'input') {
-      setSuggestions(pastQuizzes.filter(p => p && p.words));
+      const filteredPastQuizzes = pastQuizzes.filter(p => p && p.words);
+      if (JSON.stringify(suggestions) !== JSON.stringify(filteredPastQuizzes)) {
+        setSuggestions(filteredPastQuizzes);
+      }
     }
-  }, [quizState, pastQuizzes]);
+  }, [quizState, pastQuizzes, suggestions]);
 
 
   const renderContent = () => {
@@ -461,44 +485,55 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                   >
-                    <CardContent className="grid md:grid-cols-2 gap-6">
-                      <Card className="bg-secondary">
-                        <CardHeader>
-                          <CardTitle className="text-lg">Your Answer</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-secondary-foreground">{userAnswer}</p>
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-secondary">
-                        <CardHeader>
-                          <CardTitle className="text-lg">Correct Answer</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-secondary-foreground">{currentDef}</p>
-                        </CardContent>
-                        <CardFooter className="flex-col items-start gap-2">
+                    <CardContent className="space-y-4">
+                      {!evaluationResult ? (
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <Loader className="h-5 w-5 animate-spin" />
+                          <span>Evaluating your answer...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <Card className="bg-secondary">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Your Answer</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-secondary-foreground">{userAnswer}</p>
+                                </CardContent>
+                                </Card>
+                                <Card className="bg-secondary">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Correct Answer</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-secondary-foreground">{currentDef}</p>
+                                </CardContent>
+                                </Card>
+                            </div>
+                          <Card className={evaluationResult.isCorrect ? 'bg-green-100 dark:bg-green-900/20 border-green-500' : 'bg-red-100 dark:bg-red-900/20 border-red-500'}>
+                              <CardHeader className="flex-row items-center gap-4 space-y-0">
+                                  {evaluationResult.isCorrect ? <Check className="h-6 w-6 text-green-600"/> : <X className="h-6 w-6 text-red-600"/>}
+                                  <CardTitle className="text-xl">{evaluationResult.isCorrect ? "Correct!" : "Incorrect"}</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                  <p>{evaluationResult.feedback}</p>
+                              </CardContent>
+                          </Card>
+                          <div className="flex flex-col items-start gap-2">
                             <p className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="w-3 h-3 text-accent" />Need help?</p>
                             <div className="flex gap-2 flex-wrap">
                                 <Button variant="outline" size="sm" onClick={() => handleEnhancementRequest("examples")}><MessageSquareQuote className="mr-2 h-4 w-4"/>Examples</Button>
                                 <Button variant="outline" size="sm" onClick={() => handleEnhancementRequest("more detail")}><Lightbulb className="mr-2 h-4 w-4"/>More Detail</Button>
                                 <Button variant="outline" size="sm" onClick={() => handleEnhancementRequest("context")}><Globe className="mr-2 h-4 w-4"/>Context</Button>
                             </div>
-                        </CardFooter>
-                      </Card>
+                        </div>
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter className="flex-col sm:flex-row gap-4">
-                      <Button
-                        onClick={() => handleSelfEvaluation(true)}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Check className="mr-2" /> I was right
-                      </Button>
-                      <Button
-                        onClick={() => handleSelfEvaluation(false)}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        <X className="mr-2" /> I was wrong
+                    <CardFooter>
+                      <Button onClick={handleNextAfterEvaluation} className="w-full" disabled={!evaluationResult}>
+                        Next <ArrowRight className="ml-2"/>
                       </Button>
                     </CardFooter>
                   </motion.div>
