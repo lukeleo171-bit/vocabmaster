@@ -61,6 +61,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 type WordInputForm = z.infer<typeof wordInputSchema>;
@@ -133,17 +134,17 @@ export default function Home() {
     }
 
     const wordsKey = JSON.stringify(words.sort());
-    const existingQuiz = pastQuizzes.find(p => JSON.stringify(p.words.sort()) === wordsKey);
+    const existingQuiz = pastQuizzes.find(p => p && JSON.stringify(p.words.sort()) === wordsKey);
     setQuizHistory(existingQuiz ? existingQuiz.history : []);
     
     // Save to history
     try {
-      let newHistory: PastQuiz[] = [...pastQuizzes];
+      let newHistory: PastQuiz[] = [...pastQuizzes.filter(p => p)];
       if (!existingQuiz) {
         newHistory = [{ words, history: [] }, ...pastQuizzes].slice(0, MAX_HISTORY_ITEMS);
       } else {
         // Move the existing quiz to the top of the list
-        newHistory = [existingQuiz, ...pastQuizzes.filter(p => JSON.stringify(p.words.sort()) !== wordsKey)];
+        newHistory = [existingQuiz, ...pastQuizzes.filter(p => p && JSON.stringify(p.words.sort()) !== wordsKey)];
       }
 
       setPastQuizzes(newHistory);
@@ -201,7 +202,7 @@ export default function Home() {
       try {
         const wordsKey = JSON.stringify(definitions.map(d => d.word).sort());
         const updatedPastQuizzes = pastQuizzes.map(p => 
-          JSON.stringify(p.words.sort()) === wordsKey 
+          p && JSON.stringify(p.words.sort()) === wordsKey 
             ? { ...p, history: updatedHistory } 
             : p
         );
@@ -262,13 +263,13 @@ export default function Home() {
     if (value.trim().length > 0) {
       const inputWords = value.toLowerCase().split(/,?\s+/);
       const matchingQuizzes = pastQuizzes.filter(quiz => 
-        inputWords.every(inputWord => 
+        quiz && quiz.words && inputWords.every(inputWord => 
           quiz.words.some(quizWord => quizWord.toLowerCase().startsWith(inputWord))
         )
       );
       setSuggestions(matchingQuizzes);
     } else {
-      setSuggestions(pastQuizzes);
+      setSuggestions(pastQuizzes.filter(p => p && p.words));
     }
   };
 
@@ -279,7 +280,7 @@ export default function Home() {
   
   useEffect(() => {
     if(quizState === 'input') {
-      setSuggestions(pastQuizzes);
+      setSuggestions(pastQuizzes.filter(p => p && p.words));
     }
   }, [quizState, pastQuizzes]);
 
@@ -564,7 +565,7 @@ export default function Home() {
                 <span>Loading...</span>
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground">{enhancementContent.content}</div>
+              <DialogDescription>{enhancementContent.content}</DialogDescription>
             )}
           </div>
         </DialogContent>
