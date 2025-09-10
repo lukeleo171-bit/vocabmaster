@@ -63,7 +63,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 
 type WordInputForm = z.infer<typeof wordInputSchema>;
@@ -495,7 +494,7 @@ export default function Home() {
                     <CardContent>
                       <Form {...form}>
                         <form onSubmit={(e) => { e.preventDefault(); handleSpellingSubmit(); }}>
-                            <FormLabel className="font-medium">Now, spell the word: <span className="font-bold">{currentWord}</span></FormLabel>
+                            <FormLabel className="font-medium">Now, spell the word.</FormLabel>
                             <div className="flex items-center gap-2 mt-4">
                                 <SpellCheck className="text-muted-foreground" />
                                 <Input
