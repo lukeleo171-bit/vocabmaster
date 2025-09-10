@@ -63,6 +63,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 type WordInputForm = z.infer<typeof wordInputSchema>;
@@ -403,7 +404,9 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center mb-2">
-                  <CardTitle className="font-headline text-3xl capitalize">{currentWord}</CardTitle>
+                   {answerState !== "spelling" && (
+                    <CardTitle className="font-headline text-3xl capitalize">{currentWord}</CardTitle>
+                  )}
                   <p className="text-sm font-medium text-muted-foreground">
                     Question {currentQuestionNumber} of {totalQuestions}
                   </p>
