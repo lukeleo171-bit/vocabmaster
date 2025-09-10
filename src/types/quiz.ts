@@ -5,7 +5,7 @@ export type QuizItem = {
 
 export type QuizState = "input" | "loading" | "quiz" | "results";
 
-export type QuizAnswerState = "answering" | "evaluating";
+export type QuizAnswerState = "answering" | "evaluating" | "spelling";
 
 export type EnhancementType = "more detail" | "examples" | "context";
 

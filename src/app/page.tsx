@@ -21,6 +21,7 @@ import {
   PlusSquare,
   History,
   LineChart as LineChartIcon,
+  SpellCheck,
 } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 
@@ -43,6 +44,7 @@ import {
 } from "@/components/ui/form";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   getEnhancedExplanationAction,
@@ -86,6 +88,7 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
+  const [spellingAnswer, setSpellingAnswer] = useState("");
   const [isEnhancementLoading, setIsEnhancementLoading] = useState(false);
   const [enhancementContent, setEnhancementContent] = useState({
     title: "",
@@ -162,6 +165,7 @@ export default function Home() {
       setCurrentIndex(0);
       setScore(0);
       setUserAnswer("");
+      setSpellingAnswer("");
       setAnswerState("answering");
       setQuizState("quiz");
     } catch (error) {
@@ -192,12 +196,23 @@ export default function Home() {
     if (correct) {
       setScore(newScore);
     }
+    setAnswerState("spelling");
+  };
+
+  const handleSpellingSubmit = () => {
+    const isCorrect = spellingAnswer.trim().toLowerCase() === definitions[currentIndex].word.toLowerCase();
+    const newScore = isCorrect ? score + 1 : score;
+    if (isCorrect) {
+        setScore(newScore);
+    }
+
     if (currentIndex < definitions.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setUserAnswer("");
-      setAnswerState("answering");
+        setCurrentIndex(currentIndex + 1);
+        setUserAnswer("");
+        setSpellingAnswer("");
+        setAnswerState("answering");
     } else {
-      const newResult = { score: newScore, total: definitions.length };
+      const newResult = { score: newScore, total: definitions.length * 2 };
       const updatedHistory = [...quizHistory, newResult];
       setQuizHistory(updatedHistory);
 
@@ -215,7 +230,7 @@ export default function Home() {
       }
       setQuizState("results");
     }
-  };
+  }
 
   const handleNewQuiz = () => {
     form.reset();
@@ -229,6 +244,7 @@ export default function Home() {
     setCurrentIndex(0);
     setScore(0);
     setUserAnswer("");
+    setSpellingAnswer("");
     setAnswerState("answering");
     setQuizState("quiz");
   };
@@ -276,6 +292,7 @@ export default function Home() {
   };
 
   const handleSuggestionClick = (quiz: PastQuiz) => {
+    if (!quiz.words) return;
     form.setValue("words", quiz.words.join(", "));
     setSuggestions([]);
   };
@@ -375,6 +392,8 @@ export default function Home() {
       case "quiz":
         const currentWord = definitions[currentIndex].word;
         const currentDef = definitions[currentIndex].definition;
+        const totalQuestions = definitions.length * 2;
+        const currentQuestionNumber = currentIndex * 2 + (answerState === 'answering' || answerState === 'evaluating' ? 1 : 2);
         return (
           <motion.div
             key="quiz"
@@ -387,11 +406,11 @@ export default function Home() {
                 <div className="flex justify-between items-center mb-2">
                   <CardTitle className="font-headline text-3xl capitalize">{currentWord}</CardTitle>
                   <p className="text-sm font-medium text-muted-foreground">
-                    Word {currentIndex + 1} of {definitions.length}
+                    Question {currentQuestionNumber} of {totalQuestions}
                   </p>
                 </div>
                 <Progress
-                  value={((currentIndex + 1) / definitions.length) * 100}
+                  value={(currentQuestionNumber / totalQuestions) * 100}
                 />
               </CardHeader>
 
@@ -418,7 +437,7 @@ export default function Home() {
                       </Button>
                     </CardFooter>
                   </motion.div>
-                ) : (
+                ) : answerState === 'evaluating' ? (
                   <motion.div
                     key="evaluating"
                     initial={{ opacity: 0, y: 10 }}
@@ -466,13 +485,42 @@ export default function Home() {
                       </Button>
                     </CardFooter>
                   </motion.div>
+                ) : (
+                  <motion.div
+                    key="spelling"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <CardContent>
+                        <form onSubmit={(e) => { e.preventDefault(); handleSpellingSubmit(); }}>
+                            <FormLabel className="font-medium">Now, spell the word: <span className="font-bold">{currentWord}</span></FormLabel>
+                            <div className="flex items-center gap-2 mt-4">
+                                <SpellCheck className="text-muted-foreground" />
+                                <Input
+                                    value={spellingAnswer}
+                                    onChange={(e) => setSpellingAnswer(e.target.value)}
+                                    placeholder="Type the spelling here..."
+                                    className="flex-1"
+                                    autoFocus
+                                />
+                            </div>
+                        </form>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={handleSpellingSubmit} className="w-full">
+                        Check Spelling
+                      </Button>
+                    </CardFooter>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </Card>
           </motion.div>
         );
       case "results":
-        const latestResult = quizHistory[quizHistory.length - 1] || { score: 0, total: definitions.length };
+        const totalPoints = definitions.length * 2;
+        const latestResult = quizHistory[quizHistory.length - 1] || { score: 0, total: totalPoints };
         const incorrect = latestResult.total - latestResult.score;
         const chartData = [
           { name: "Correct", value: latestResult.score, fill: "hsl(var(--chart-1))" },
@@ -517,7 +565,7 @@ export default function Home() {
                         <LineChart data={historyChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
-                          <YAxis allowDecimals={false} domain={[0, definitions.length]}/>
+                          <YAxis allowDecimals={false} domain={[0, totalPoints]}/>
                           <Tooltip />
                           <Legend />
                           <Line type="monotone" dataKey="Score" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />
