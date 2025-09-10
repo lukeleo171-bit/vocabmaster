@@ -493,6 +493,7 @@ export default function Home() {
                     exit={{ opacity: 0, y: -10 }}
                   >
                     <CardContent>
+                      <Form {...form}>
                         <form onSubmit={(e) => { e.preventDefault(); handleSpellingSubmit(); }}>
                             <FormLabel className="font-medium">Now, spell the word: <span className="font-bold">{currentWord}</span></FormLabel>
                             <div className="flex items-center gap-2 mt-4">
@@ -506,6 +507,7 @@ export default function Home() {
                                 />
                             </div>
                         </form>
+                      </Form>
                     </CardContent>
                     <CardFooter>
                       <Button onClick={handleSpellingSubmit} className="w-full">
