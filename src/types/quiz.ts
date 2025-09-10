@@ -3,7 +3,7 @@ export type QuizItem = {
   definition: string;
 };
 
-export type QuizState = "input" | "loading" | "quiz" | "results";
+export type QuizState = "input" | "loading" | "quiz" | "results" | "practice";
 
 export type QuizAnswerState = "answering" | "evaluating" | "spelling";
 

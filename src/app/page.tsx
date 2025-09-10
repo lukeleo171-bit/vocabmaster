@@ -24,6 +24,7 @@ import {
   SpellCheck,
   ThumbsUp,
   ThumbsDown,
+  Repeat,
 } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 
@@ -103,6 +104,7 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<PastQuiz[]>([]);
   const [wordResults, setWordResults] = useState<WordResult[]>([]);
   const [evaluationResult, setEvaluationResult] = useState<{ isCorrect: boolean; feedback: string } | null>(null);
+  const [practiceWords, setPracticeWords] = useState<QuizItem[]>([]);
 
 
   const { toast } = useToast();
@@ -118,14 +120,14 @@ export default function Home() {
     try {
       const storedHistory = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedHistory) {
-        setPastQuizzes(JSON.parse(storedHistory));
+        setPastQuizzes(JSON.parse(storedHistory).filter(Boolean));
       }
     } catch (error) {
       console.error("Could not load quiz history from localStorage", error);
     }
   }, []);
 
-  const startNewQuiz = (defs: QuizItem[]) => {
+  const startNewQuiz = (defs: QuizItem[], state: QuizState = "quiz") => {
     setDefinitions(shuffleArray(defs));
     const initialResults = defs.map(d => ({
       word: d.word,
@@ -138,8 +140,9 @@ export default function Home() {
     setScore(0);
     setUserAnswer("");
     setSpellingAnswer("");
+    setEvaluationResult(null);
     setAnswerState("answering");
-    setQuizState("quiz");
+    setQuizState(state);
   }
 
   const handleStartQuiz = async (data: WordInputForm) => {
@@ -213,13 +216,14 @@ export default function Home() {
         correctDefinition: currentQuizItem.definition,
       });
       setEvaluationResult(result);
-      const newScore = result.isCorrect ? score + 1 : score;
-      if (result.isCorrect) {
-        setScore(newScore);
+      
+      const currentWordResult = wordResults.find(wr => wr.word === currentQuizItem.word);
+
+      if (currentWordResult) {
+        currentWordResult.definitionCorrect = result.isCorrect;
+        setWordResults([...wordResults]);
       }
-      const updatedResults = [...wordResults];
-      updatedResults[currentIndex].definitionCorrect = result.isCorrect;
-      setWordResults(updatedResults);
+
     } catch (error) {
       toast({
         title: "Evaluation Error",
@@ -237,16 +241,41 @@ export default function Home() {
   };
 
   const handleSpellingSubmit = () => {
-    const isCorrect = spellingAnswer.trim().toLowerCase() === definitions[currentIndex].word.toLowerCase();
-    let newScore = score;
-    if (isCorrect) {
-        newScore++;
-        setScore(newScore);
+    const currentQuizItem = definitions[currentIndex];
+    const isCorrect = spellingAnswer.trim().toLowerCase() === currentQuizItem.word.toLowerCase();
+    
+    const currentWordResult = wordResults.find(wr => wr.word === currentQuizItem.word);
+     if (currentWordResult) {
+        currentWordResult.spellingCorrect = isCorrect;
+        setWordResults([...wordResults]);
+     }
+
+    if (quizState === 'practice') {
+      if (isCorrect && currentWordResult?.definitionCorrect) {
+        const remainingWords = definitions.filter(d => d.word !== currentQuizItem.word);
+        if(remainingWords.length === 0) {
+          setQuizState('results');
+        } else {
+          setDefinitions(shuffleArray(remainingWords));
+          setCurrentIndex(0);
+          setUserAnswer("");
+          setSpellingAnswer("");
+          setAnswerState("answering");
+        }
+      } else {
+         // If wrong, move to the next word and cycle back later
+        if (currentIndex < definitions.length - 1) {
+            setCurrentIndex(currentIndex + 1);
+        } else {
+            setCurrentIndex(0);
+        }
+        setUserAnswer("");
+        setSpellingAnswer("");
+        setAnswerState("answering");
+      }
+      return;
     }
 
-    const updatedResults = [...wordResults];
-    updatedResults[currentIndex].spellingCorrect = isCorrect;
-    setWordResults(updatedResults);
 
     if (currentIndex < definitions.length - 1) {
         setCurrentIndex(currentIndex + 1);
@@ -254,7 +283,14 @@ export default function Home() {
         setSpellingAnswer("");
         setAnswerState("answering");
     } else {
-      const newResult = { score: newScore, total: definitions.length * 2 };
+      const finalScore = wordResults.reduce((acc, r) => {
+        if (r.definitionCorrect) acc++;
+        if (r.spellingCorrect) acc++;
+        return acc;
+      }, 0);
+      setScore(finalScore);
+
+      const newResult = { score: finalScore, total: definitions.length * 2 };
       const updatedHistory = [...quizHistory, newResult];
       setQuizHistory(updatedHistory);
 
@@ -282,7 +318,18 @@ export default function Home() {
   };
 
   const handleStudyAgain = () => {
-    startNewQuiz(definitions);
+    startNewQuiz(definitions.map(d => ({ word: d.word, definition: d.definition })));
+  };
+
+  const handlePracticeMissedWords = () => {
+    const missed = wordResults
+      .filter(r => !r.definitionCorrect || !r.spellingCorrect)
+      .map(r => ({ word: r.word, definition: r.definition }));
+    
+    if (missed.length > 0) {
+      setPracticeWords(missed);
+      startNewQuiz(missed, "practice");
+    }
   };
 
   const handleEnhancementRequest = async (type: EnhancementType) => {
@@ -399,7 +446,7 @@ export default function Home() {
                               className="w-full justify-start h-auto text-left"
                               onClick={() => handleSuggestionClick(quiz)}
                             >
-                              <p className="truncate text-sm text-muted-foreground">{quiz.words.join(', ')}</p>
+                              <p className="truncate text-sm text-muted-foreground">{quiz.words ? quiz.words.join(', ') : ''}</p>
                             </Button>
                           ))}
                         </div>
@@ -428,31 +475,61 @@ export default function Home() {
             <p className="text-muted-foreground">This will just take a moment.</p>
           </motion.div>
         );
+      case "practice":
       case "quiz":
-        const currentWord = definitions[currentIndex].word;
-        const currentDef = definitions[currentIndex].definition;
+        const isPractice = quizState === 'practice';
+        const currentWord = definitions[currentIndex]?.word;
+        const currentDef = definitions[currentIndex]?.definition;
         const totalQuestions = definitions.length * 2;
         const currentQuestionNumber = currentIndex * 2 + (answerState === 'answering' || answerState === 'evaluating' ? 1 : 2);
+        
+        if (!currentWord) {
+            return (
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Quiz Complete!</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p>You've mastered all the words in this practice session!</p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button onClick={handleNewQuiz} className="w-full">
+                                <PlusSquare className="mr-2 h-4 w-4" />
+                                New Quiz
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </motion.div>
+            );
+        }
+
         return (
           <motion.div
-            key="quiz"
+            key={isPractice ? "practice" : "quiz"}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-3xl"
           >
             <Card>
               <CardHeader>
+                 {isPractice && (
+                  <div className="flex items-center gap-2 text-primary font-semibold mb-2">
+                    <Repeat className="h-5 w-5" />
+                    <p>Practice Mode</p>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-2">
                    {answerState !== "spelling" && (
                     <CardTitle className="font-headline text-3xl capitalize">{currentWord}</CardTitle>
                   )}
                   <p className="text-sm font-medium text-muted-foreground">
-                    Question {currentQuestionNumber} of {totalQuestions}
+                    {isPractice ? `Words remaining: ${definitions.length}` : `Question ${currentQuestionNumber} of ${totalQuestions}`}
                   </p>
                 </div>
-                <Progress
+                {!isPractice && <Progress
                   value={(currentQuestionNumber / totalQuestions) * 100}
-                />
+                />}
               </CardHeader>
 
               <AnimatePresence mode="wait">
@@ -573,11 +650,16 @@ export default function Home() {
           </motion.div>
         );
       case "results":
-        const totalPoints = definitions.length * 2;
-        const latestResult = quizHistory[quizHistory.length - 1] || { score: 0, total: totalPoints };
-        const incorrect = latestResult.total - latestResult.score;
+        const totalPoints = wordResults.length * 2;
+        const finalScore = wordResults.reduce((acc, r) => {
+          if (r.definitionCorrect) acc++;
+          if (r.spellingCorrect) acc++;
+          return acc;
+        }, 0);
+
+        const incorrect = totalPoints - finalScore;
         const chartData = [
-          { name: "Correct", value: latestResult.score, fill: "hsl(var(--chart-1))" },
+          { name: "Correct", value: finalScore, fill: "hsl(var(--chart-1))" },
           { name: "Incorrect", value: incorrect, fill: "hsl(var(--destructive))" },
         ];
         const historyChartData = quizHistory.map((result, index) => ({
@@ -602,7 +684,7 @@ export default function Home() {
                 </div>
                 <CardTitle className="font-headline text-3xl mt-4">Quiz Complete!</CardTitle>
                 <CardDescription>
-                  You scored {latestResult.score} out of {latestResult.total}.
+                  You scored {finalScore} out of {totalPoints}.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -657,6 +739,12 @@ export default function Home() {
                 )}
               </CardContent>
               <CardFooter className="flex-col sm:flex-row gap-4">
+                {incorrectWords.length > 0 && (
+                   <Button onClick={handlePracticeMissedWords} className="w-full" size="lg">
+                      <Repeat className="mr-2 h-4 w-4" />
+                      Practice Missed Words
+                    </Button>
+                )}
                 <Button onClick={handleStudyAgain} className="w-full" size="lg" variant="secondary">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Study Same Words
