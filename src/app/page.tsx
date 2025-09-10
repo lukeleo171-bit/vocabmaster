@@ -22,6 +22,8 @@ import {
   History,
   LineChart as LineChartIcon,
   SpellCheck,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 
@@ -57,13 +59,13 @@ import type {
   QuizItem,
   QuizState,
   PastQuiz,
+  WordResult,
 } from "@/types/quiz";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 
 type WordInputForm = z.infer<typeof wordInputSchema>;
@@ -98,6 +100,7 @@ export default function Home() {
   const [quizHistory, setQuizHistory] = useState<{ score: number; total: number }[]>([]);
   const [pastQuizzes, setPastQuizzes] = useState<PastQuiz[]>([]);
   const [suggestions, setSuggestions] = useState<PastQuiz[]>([]);
+  const [wordResults, setWordResults] = useState<WordResult[]>([]);
 
   const { toast } = useToast();
 
@@ -118,6 +121,23 @@ export default function Home() {
       console.error("Could not load quiz history from localStorage", error);
     }
   }, []);
+
+  const startNewQuiz = (defs: QuizItem[]) => {
+    setDefinitions(shuffleArray(defs));
+    const initialResults = defs.map(d => ({
+      word: d.word,
+      definition: d.definition,
+      definitionCorrect: null,
+      spellingCorrect: null,
+    }));
+    setWordResults(initialResults);
+    setCurrentIndex(0);
+    setScore(0);
+    setUserAnswer("");
+    setSpellingAnswer("");
+    setAnswerState("answering");
+    setQuizState("quiz");
+  }
 
   const handleStartQuiz = async (data: WordInputForm) => {
     setQuizState("loading");
@@ -158,16 +178,9 @@ export default function Home() {
       console.error("Could not save quiz history to localStorage", error);
     }
 
-
     try {
       const defs = await getQuizDefinitionsAction(words);
-      setDefinitions(shuffleArray(defs));
-      setCurrentIndex(0);
-      setScore(0);
-      setUserAnswer("");
-      setSpellingAnswer("");
-      setAnswerState("answering");
-      setQuizState("quiz");
+      startNewQuiz(defs);
     } catch (error) {
       setQuizState("input");
       toast({
@@ -196,15 +209,23 @@ export default function Home() {
     if (correct) {
       setScore(newScore);
     }
+    const updatedResults = [...wordResults];
+    updatedResults[currentIndex].definitionCorrect = correct;
+    setWordResults(updatedResults);
     setAnswerState("spelling");
   };
 
   const handleSpellingSubmit = () => {
     const isCorrect = spellingAnswer.trim().toLowerCase() === definitions[currentIndex].word.toLowerCase();
-    const newScore = isCorrect ? score + 1 : score;
+    let newScore = score;
     if (isCorrect) {
+        newScore++;
         setScore(newScore);
     }
+
+    const updatedResults = [...wordResults];
+    updatedResults[currentIndex].spellingCorrect = isCorrect;
+    setWordResults(updatedResults);
 
     if (currentIndex < definitions.length - 1) {
         setCurrentIndex(currentIndex + 1);
@@ -222,7 +243,7 @@ export default function Home() {
           p && p.words && JSON.stringify(p.words.sort()) === wordsKey 
             ? { ...p, history: updatedHistory } 
             : p
-        );
+        ).filter(Boolean);
         setPastQuizzes(updatedPastQuizzes);
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPastQuizzes));
       } catch (error) {
@@ -240,13 +261,7 @@ export default function Home() {
   };
 
   const handleStudyAgain = () => {
-    setDefinitions(shuffleArray(definitions));
-    setCurrentIndex(0);
-    setScore(0);
-    setUserAnswer("");
-    setSpellingAnswer("");
-    setAnswerState("answering");
-    setQuizState("quiz");
+    startNewQuiz(definitions);
   };
 
   const handleEnhancementRequest = async (type: EnhancementType) => {
@@ -534,14 +549,18 @@ export default function Home() {
             name: `Quiz ${index + 1}`,
             Score: result.score,
         }));
+        
+        const correctWords = wordResults.filter(r => r.definitionCorrect && r.spellingCorrect);
+        const incorrectWords = wordResults.filter(r => !r.definitionCorrect || !r.spellingCorrect);
 
         return (
           <motion.div
             key="results"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-4xl"
           >
-            <Card className="w-full max-w-2xl text-center">
+            <Card className="w-full text-center">
               <CardHeader>
                 <div className="mx-auto bg-accent/20 text-accent p-3 rounded-full w-fit">
                     <Award className="h-10 w-10"/>
@@ -561,6 +580,29 @@ export default function Home() {
                     </BarChart>
                 </ResponsiveContainer>
                 </div>
+                 <div className="grid md:grid-cols-2 gap-6 mt-8 text-left">
+                  <div>
+                    <h3 className="font-headline text-xl mb-4 flex items-center gap-2"><ThumbsUp className="text-green-500" />Mastered Words</h3>
+                    <Card className="bg-secondary max-h-60 overflow-y-auto">
+                        <CardContent className="p-4 space-y-2">
+                            {correctWords.length > 0 ? correctWords.map(r => (
+                                <div key={r.word} className="p-2 bg-background rounded-md text-sm capitalize">{r.word}</div>
+                            )) : <p className="text-muted-foreground text-sm p-2">No words fully mastered yet. Keep trying!</p>}
+                        </CardContent>
+                    </Card>
+                  </div>
+                  <div>
+                    <h3 className="font-headline text-xl mb-4 flex items-center gap-2"><ThumbsDown className="text-red-500" />Needs Practice</h3>
+                     <Card className="bg-secondary max-h-60 overflow-y-auto">
+                        <CardContent className="p-4 space-y-2">
+                           {incorrectWords.length > 0 ? incorrectWords.map(r => (
+                                <div key={r.word} className="p-2 bg-background rounded-md text-sm capitalize">{r.word}</div>
+                            )) : <p className="text-muted-foreground text-sm p-2">Great job! You mastered all the words.</p>}
+                        </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
                 {quizHistory.length > 1 && (
                   <div className="mt-8">
                     <h3 className="text-xl font-headline mb-4 flex items-center justify-center gap-2"><LineChartIcon className="h-6 w-6 text-primary"/>Progress History</h3>

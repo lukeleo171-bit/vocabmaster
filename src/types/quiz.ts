@@ -13,3 +13,10 @@ export type PastQuiz = {
   words: string[];
   history: { score: number; total: number }[];
 };
+
+export type WordResult = {
+  word: string;
+  definition: string;
+  definitionCorrect: boolean | null;
+  spellingCorrect: boolean | null;
+};
