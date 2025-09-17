@@ -25,6 +25,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Repeat,
+  Trash2,
 } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 
@@ -384,6 +385,25 @@ export default function Home() {
     form.setValue("words", quiz.words.join(", "));
     setSuggestions([]);
   };
+
+  const handleClearHistory = () => {
+    setPastQuizzes([]);
+    setSuggestions([]);
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      toast({
+        title: "History Cleared",
+        description: "Your recent quiz history has been cleared.",
+      });
+    } catch (error) {
+      console.error("Could not clear quiz history from localStorage", error);
+      toast({
+        title: "Error",
+        description: "Could not clear quiz history.",
+        variant: "destructive",
+      });
+    }
+  };
   
   useEffect(() => {
     if(quizState === 'input') {
@@ -442,7 +462,13 @@ export default function Home() {
                     />
                      {suggestions.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><History className="h-4 w-4" />Recent Quizzes</h4>
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><History className="h-4 w-4" />Recent Quizzes</h4>
+                          <Button variant="ghost" size="sm" onClick={handleClearHistory} className="h-auto px-2 py-1 text-xs">
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Clear
+                          </Button>
+                        </div>
                         <div className="max-h-40 overflow-y-auto space-y-2 rounded-md border p-2">
                           {suggestions.map((quiz, index) => (
                             <Button
@@ -799,5 +825,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
