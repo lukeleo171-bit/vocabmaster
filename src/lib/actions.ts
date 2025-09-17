@@ -6,6 +6,9 @@ import {
 import {
   generateQuizDefinitions,
 } from "@/ai/flows/generate-quiz-definitions";
+import {
+  generateMultipleChoiceOptions,
+} from "@/ai/flows/generate-multiple-choice-options";
 import type { EnhancementType, QuizItem } from "@/types/quiz";
 import {
   evaluateAnswer,
@@ -58,5 +61,21 @@ export async function evaluateAnswerAction(
   } catch (error) {
     console.error("Error evaluating answer:", error);
     throw new Error("Failed to evaluate answer. Please try again.");
+  }
+}
+
+export async function getMultipleChoiceOptionsAction(
+  word: string,
+  correctDefinition: string
+): Promise<string[]> {
+  try {
+    const result = await generateMultipleChoiceOptions({
+      word,
+      correctDefinition,
+    });
+    return result.options;
+  } catch (error) {
+    console.error("Error generating multiple choice options:", error);
+    throw new Error("Failed to generate multiple choice options.");
   }
 }

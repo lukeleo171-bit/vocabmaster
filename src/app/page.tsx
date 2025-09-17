@@ -56,6 +56,7 @@ import {
   getEnhancedExplanationAction,
   getQuizDefinitionsAction,
   evaluateAnswerAction,
+  getMultipleChoiceOptionsAction,
 } from "@/lib/actions";
 import { wordInputSchema } from "@/lib/schema";
 import type {
@@ -110,6 +111,7 @@ export default function Home() {
   const [wordResults, setWordResults] = useState<WordResult[]>([]);
   const [evaluationResult, setEvaluationResult] = useState<{ isCorrect: boolean; feedback: string } | null>(null);
   const [practiceWords, setPracticeWords] = useState<QuizItem[]>([]);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
 
   const { toast } = useToast();
@@ -132,8 +134,31 @@ export default function Home() {
     }
   }, []);
 
-  const startNewQuiz = (defs: QuizItem[], state: QuizState = "quiz") => {
-    setDefinitions(shuffleArray(defs));
+  const startNewQuiz = async (defs: QuizItem[], state: QuizState = "quiz") => {
+    let quizItems = defs;
+     if (quizType === 'multiple_choice') {
+      setQuizState('loading');
+      try {
+        const itemsWithOptions = await Promise.all(
+          defs.map(async (d) => {
+            const options = await getMultipleChoiceOptionsAction(d.word, d.definition);
+            const allOptions = shuffleArray([...options, d.definition]);
+            return { ...d, options: allOptions };
+          })
+        );
+        quizItems = itemsWithOptions;
+      } catch (error) {
+         toast({
+          title: "Error",
+          description: "Could not generate multiple choice options.",
+          variant: "destructive",
+        });
+        setQuizState('input');
+        return;
+      }
+    }
+
+    setDefinitions(shuffleArray(quizItems));
     const initialResults = defs.map(d => ({
       word: d.word,
       definition: d.definition,
@@ -191,7 +216,7 @@ export default function Home() {
 
     try {
       const defs = await getQuizDefinitionsAction(words);
-      startNewQuiz(defs);
+      await startNewQuiz(defs);
     } catch (error) {
       setQuizState("input");
       toast({
@@ -204,6 +229,24 @@ export default function Home() {
   };
 
   const handleAnswerSubmit = async () => {
+     const currentQuizItem = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
+     if (quizType === 'multiple_choice') {
+      if (!selectedOption) {
+        toast({ title: "No Selection", description: "Please select an option.", variant: "destructive" });
+        return;
+      }
+      const isCorrect = selectedOption === currentQuizItem.definition;
+      
+      const currentWordResult = wordResults.find(wr => wr.word === currentQuizItem.word);
+      if (currentWordResult) {
+        currentWordResult.definitionCorrect = isCorrect;
+        setWordResults([...wordResults]);
+      }
+      setAnswerState('evaluating');
+      setEvaluationResult({ isCorrect, feedback: isCorrect ? "That's right!" : `The correct answer is: "${currentQuizItem.definition}"` });
+      return;
+    }
+
     if (userAnswer.trim() === "") {
       toast({
         title: "Empty Answer",
@@ -214,7 +257,6 @@ export default function Home() {
     }
     setAnswerState("evaluating");
     try {
-      const currentQuizItem = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
       const result = await evaluateAnswerAction({
         word: currentQuizItem.word,
         userAnswer: userAnswer,
@@ -242,7 +284,8 @@ export default function Home() {
 
   const handleNextAfterEvaluation = () => {
     setEvaluationResult(null);
-    if (quizType === 'definition_only') {
+    setSelectedOption(null);
+    if (quizType === 'definition_only' || quizType === 'multiple_choice') {
         handleNextQuestion();
     } else {
         setAnswerState("spelling");
@@ -332,13 +375,13 @@ export default function Home() {
   };
 
   const handleStudyAgain = () => {
-    startNewQuiz(definitions.map(d => ({ word: d.word, definition: d.definition })));
+    startNewQuiz(definitions.map(d => ({ word: d.word, definition: d.definition, options: d.options })));
   };
 
   const handlePracticeMissedWords = () => {
     const missed = wordResults
       .filter(r => !r.definitionCorrect || !r.spellingCorrect)
-      .map(r => ({ word: r.word, definition: r.definition }));
+      .map(r => ({ word: r.word, definition: r.definition, options: definitions.find(d => d.word === r.word)?.options }));
     
     if (missed.length > 0) {
       setPracticeWords(shuffleArray(missed));
@@ -522,13 +565,12 @@ export default function Home() {
                           </Label>
                         </div>
                         <div>
-                          <RadioGroupItem value="multiple_choice" id="multiple_choice" className="peer sr-only" disabled />
+                          <RadioGroupItem value="multiple_choice" id="multiple_choice" className="peer sr-only" />
                           <Label
                             htmlFor="multiple_choice"
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 cursor-not-allowed opacity-50"
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                           >
                             Multiple Choice
-                            <span className="text-xs font-normal mt-1">(Coming Soon)</span>
                           </Label>
                         </div>
                         <div>
@@ -594,7 +636,7 @@ export default function Home() {
             );
         }
 
-        const { word: currentWord, definition: currentDef } = currentQuizItem;
+        const { word: currentWord, definition: currentDef, options: currentOptions } = currentQuizItem;
         const totalQuestions = definitions.length * (quizType === 'definition_spelling' ? 2 : 1);
         const currentQuestionNumber = currentIndex * (quizType === 'definition_spelling' ? 2 : 1) + (answerState === 'answering' || answerState === 'evaluating' ? 1 : 2);
 
@@ -614,7 +656,7 @@ export default function Home() {
                   </div>
                 )}
                 <div className="flex justify-between items-center mb-2">
-                   {answerState !== "spelling" && (
+                   {(answerState !== "spelling" || quizType === 'multiple_choice' ) && (
                     <CardTitle className="font-headline text-3xl capitalize">{currentWord}</CardTitle>
                   )}
                   <p className="text-sm font-medium text-muted-foreground">
@@ -635,13 +677,31 @@ export default function Home() {
                     exit={{ opacity: 0, y: -10 }}
                   >
                     <CardContent>
-                      <p className="mb-4 font-medium">What is the definition of "{currentWord}"?</p>
-                      <Textarea
-                        value={userAnswer}
-                        onChange={(e) => setUserAnswer(e.target.value)}
-                        placeholder="Type your definition here..."
-                        className="min-h-[120px]"
-                      />
+                       {quizType === 'multiple_choice' ? (
+                        <div className="space-y-4">
+                          <p className="mb-4 font-medium">Choose the correct definition for "{currentWord}":</p>
+                          <RadioGroup value={selectedOption ?? ''} onValueChange={setSelectedOption} className="space-y-2">
+                            {currentOptions?.map((option, index) => (
+                              <div key={index}>
+                                <RadioGroupItem value={option} id={`option-${index}`} className="peer sr-only" />
+                                <Label htmlFor={`option-${index}`} className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                                  {option}
+                                </Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="mb-4 font-medium">What is the definition of "{currentWord}"?</p>
+                          <Textarea
+                            value={userAnswer}
+                            onChange={(e) => setUserAnswer(e.target.value)}
+                            placeholder="Type your definition here..."
+                            className="min-h-[120px]"
+                          />
+                        </>
+                      )}
                     </CardContent>
                     <CardFooter>
                       <Button onClick={handleAnswerSubmit} className="w-full">
@@ -664,24 +724,26 @@ export default function Home() {
                         </div>
                       ) : (
                         <div className="space-y-6">
-                            <div className="grid md:grid-cols-2 gap-6">
+                            {quizType !== 'multiple_choice' && (
+                              <div className="grid md:grid-cols-2 gap-6">
                                 <Card className="bg-secondary">
-                                <CardHeader>
+                                  <CardHeader>
                                     <CardTitle className="text-lg">Your Answer</CardTitle>
-                                </CardHeader>
-                                <CardContent>
+                                  </CardHeader>
+                                  <CardContent>
                                     <p className="text-secondary-foreground">{userAnswer}</p>
-                                </CardContent>
+                                  </CardContent>
                                 </Card>
                                 <Card className="bg-secondary">
-                                <CardHeader>
+                                  <CardHeader>
                                     <CardTitle className="text-lg">Correct Answer</CardTitle>
-                                </CardHeader>
-                                <CardContent>
+                                  </CardHeader>
+                                  <CardContent>
                                     <p className="text-secondary-foreground">{currentDef}</p>
-                                </CardContent>
+                                  </CardContent>
                                 </Card>
-                            </div>
+                              </div>
+                            )}
                           <Card className={evaluationResult.isCorrect ? 'bg-green-100 dark:bg-green-900/20 border-green-500' : 'bg-red-100 dark:bg-red-900/20 border-red-500'}>
                               <CardHeader className="flex-row items-center gap-4 space-y-0">
                                   {evaluationResult.isCorrect ? <Check className="h-6 w-6 text-green-600"/> : <X className="h-6 w-6 text-red-600"/>}
@@ -744,10 +806,13 @@ export default function Home() {
           </motion.div>
         );
       case "results":
-        const totalPoints = wordResults.length * (quizType === 'definition_spelling' ? 2 : 1);
+        const isSpellingQuiz = quizType === 'definition_spelling';
+        const pointsPerWord = isSpellingQuiz ? 2 : 1;
+        const totalPoints = wordResults.length * pointsPerWord;
+        
         const finalScore = wordResults.reduce((acc, r) => {
           if (r.definitionCorrect) acc++;
-          if (quizType === 'definition_spelling' && r.spellingCorrect) acc++;
+          if (isSpellingQuiz && r.spellingCorrect) acc++;
           return acc;
         }, 0);
 
@@ -761,8 +826,8 @@ export default function Home() {
             Score: result.score,
         }));
         
-        const correctWords = wordResults.filter(r => r.definitionCorrect && r.spellingCorrect);
-        const incorrectWords = wordResults.filter(r => !r.definitionCorrect || !r.spellingCorrect);
+        const correctWords = wordResults.filter(r => r.definitionCorrect && (isSpellingQuiz ? r.spellingCorrect : true));
+        const incorrectWords = wordResults.filter(r => !r.definitionCorrect || (isSpellingQuiz && !r.spellingCorrect));
 
         return (
           <motion.div
@@ -870,6 +935,7 @@ export default function Home() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{enhancementContent.title}</DialogTitle>
+
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto pr-4">
             {isEnhancementLoading ? (

@@ -1,6 +1,7 @@
 export type QuizItem = {
   word: string;
   definition: string;
+  options?: string[];
 };
 
 export type QuizState = "input" | "loading" | "quiz" | "results" | "practice";
