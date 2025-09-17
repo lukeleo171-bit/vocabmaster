@@ -700,7 +700,7 @@ export default function Home() {
                             <Button 
                               key={item.definition}
                               variant={selectedDefinition === item.definition ? "default" : "outline"}
-                              className="w-full justify-start text-left h-auto"
+                              className="w-full justify-start text-left h-auto whitespace-normal"
                               onClick={() => setSelectedDefinition(item.definition)}
                               disabled={matchedPairs.some(p => p.definition === item.definition)}
                             >
