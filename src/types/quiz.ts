@@ -20,3 +20,9 @@ export type WordResult = {
   definitionCorrect: boolean | null;
   spellingCorrect: boolean | null;
 };
+
+export type QuizType =
+  | 'definition_spelling'
+  | 'definition_only'
+  | 'multiple_choice'
+  | 'matching';

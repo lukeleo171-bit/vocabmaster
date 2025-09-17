@@ -50,6 +50,8 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import {
   getEnhancedExplanationAction,
   getQuizDefinitionsAction,
@@ -63,6 +65,7 @@ import type {
   QuizState,
   PastQuiz,
   WordResult,
+  QuizType,
 } from "@/types/quiz";
 import {
   Dialog,
@@ -88,6 +91,7 @@ const LOCAL_STORAGE_KEY = "vocabMasterHistory";
 
 export default function Home() {
   const [quizState, setQuizState] = useState<QuizState>("input");
+  const [quizType, setQuizType] = useState<QuizType>('definition_spelling');
   const [answerState, setAnswerState] = useState<QuizAnswerState>("answering");
   const [definitions, setDefinitions] = useState<QuizItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -121,7 +125,7 @@ export default function Home() {
     try {
       const storedHistory = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedHistory) {
-        setPastQuizzes(JSON.parse(storedHistory).filter(Boolean));
+        setPastQuizzes(JSON.parse(storedHistory).filter(Boolean).filter(q => q.words));
       }
     } catch (error) {
       console.error("Could not load quiz history from localStorage", error);
@@ -134,7 +138,7 @@ export default function Home() {
       word: d.word,
       definition: d.definition,
       definitionCorrect: null,
-      spellingCorrect: null,
+      spellingCorrect: quizType !== 'definition_spelling' ? true : null,
     }));
     setWordResults(initialResults);
     setCurrentIndex(0);
@@ -238,45 +242,40 @@ export default function Home() {
 
   const handleNextAfterEvaluation = () => {
     setEvaluationResult(null);
-    setAnswerState("spelling");
-  };
-
-  const handleSpellingSubmit = () => {
-    const currentQuizItem = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
-    const isCorrect = spellingAnswer.trim().toLowerCase() === currentQuizItem.word.toLowerCase();
-    
-    const currentWordResult = wordResults.find(wr => wr.word === currentQuizItem.word);
-     if (currentWordResult) {
-        currentWordResult.spellingCorrect = isCorrect;
-        setWordResults([...wordResults]);
-     }
-
-    if (quizState === 'practice') {
-      if (isCorrect && currentWordResult?.definitionCorrect) {
-        const remainingWords = practiceWords.filter(d => d.word !== currentQuizItem.word);
-        if(remainingWords.length === 0) {
-          setQuizState('results');
-        } else {
-          setPracticeWords(shuffleArray(remainingWords));
-          setCurrentIndex(0);
-          setUserAnswer("");
-          setSpellingAnswer("");
-          setAnswerState("answering");
-        }
-      } else {
-         // If wrong, move to the next word and cycle back later
-        if (currentIndex < practiceWords.length - 1) {
-            setCurrentIndex(currentIndex + 1);
-        } else {
-            setCurrentIndex(0);
-        }
-        setUserAnswer("");
-        setSpellingAnswer("");
-        setAnswerState("answering");
-      }
-      return;
+    if (quizType === 'definition_only') {
+        handleNextQuestion();
+    } else {
+        setAnswerState("spelling");
     }
-
+  };
+  
+  const handleNextQuestion = () => {
+    if (quizState === 'practice') {
+        const currentQuizItem = practiceWords[currentIndex];
+        const currentWordResult = wordResults.find(wr => wr.word === currentQuizItem.word);
+        if (currentWordResult?.definitionCorrect && currentWordResult?.spellingCorrect) {
+            const remainingWords = practiceWords.filter(d => d.word !== currentQuizItem.word);
+            if(remainingWords.length === 0) {
+                setQuizState('results');
+            } else {
+                setPracticeWords(shuffleArray(remainingWords));
+                setCurrentIndex(0);
+                setUserAnswer("");
+                setSpellingAnswer("");
+                setAnswerState("answering");
+            }
+        } else {
+            if (currentIndex < practiceWords.length - 1) {
+                setCurrentIndex(currentIndex + 1);
+            } else {
+                setCurrentIndex(0);
+            }
+            setUserAnswer("");
+            setSpellingAnswer("");
+            setAnswerState("answering");
+        }
+        return;
+    }
 
     if (currentIndex < definitions.length - 1) {
         setCurrentIndex(currentIndex + 1);
@@ -284,6 +283,7 @@ export default function Home() {
         setSpellingAnswer("");
         setAnswerState("answering");
     } else {
+      const totalPossibleScore = definitions.length * (quizType === 'definition_spelling' ? 2 : 1);
       const finalScore = wordResults.reduce((acc, r) => {
         if (r.definitionCorrect) acc++;
         if (r.spellingCorrect) acc++;
@@ -291,7 +291,7 @@ export default function Home() {
       }, 0);
       setScore(finalScore);
 
-      const newResult = { score: finalScore, total: definitions.length * 2 };
+      const newResult = { score: finalScore, total: totalPossibleScore };
       const updatedHistory = [...quizHistory, newResult];
       setQuizHistory(updatedHistory);
 
@@ -309,6 +309,19 @@ export default function Home() {
       }
       setQuizState("results");
     }
+  }
+
+  const handleSpellingSubmit = () => {
+    const currentQuizItem = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
+    const isCorrect = spellingAnswer.trim().toLowerCase() === currentQuizItem.word.toLowerCase();
+    
+    const currentWordResult = wordResults.find(wr => wr.word === currentQuizItem.word);
+     if (currentWordResult) {
+        currentWordResult.spellingCorrect = isCorrect;
+        setWordResults([...wordResults]);
+     }
+    
+    handleNextQuestion();
   }
 
   const handleNewQuiz = () => {
@@ -440,7 +453,7 @@ export default function Home() {
                 <Form {...form}>
                   <form
                     onSubmit={form.handleSubmit(handleStartQuiz)}
-                    className="space-y-4"
+                    className="space-y-6"
                   >
                     <FormField
                       control={form.control}
@@ -483,6 +496,54 @@ export default function Home() {
                         </div>
                       </div>
                     )}
+                     <div>
+                      <FormLabel className="mb-4 block font-medium">Quiz Type</FormLabel>
+                      <RadioGroup
+                        defaultValue="definition_spelling"
+                        onValueChange={(value: string) => setQuizType(value as QuizType)}
+                        className="grid grid-cols-2 gap-4"
+                      >
+                        <div>
+                          <RadioGroupItem value="definition_spelling" id="definition_spelling" className="peer sr-only" />
+                          <Label
+                            htmlFor="definition_spelling"
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                          >
+                            Definition & Spelling
+                          </Label>
+                        </div>
+                        <div>
+                          <RadioGroupItem value="definition_only" id="definition_only" className="peer sr-only" />
+                          <Label
+                            htmlFor="definition_only"
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                          >
+                            Definition Only
+                          </Label>
+                        </div>
+                        <div>
+                          <RadioGroupItem value="multiple_choice" id="multiple_choice" className="peer sr-only" disabled />
+                          <Label
+                            htmlFor="multiple_choice"
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 cursor-not-allowed opacity-50"
+                          >
+                            Multiple Choice
+                            <span className="text-xs font-normal mt-1">(Coming Soon)</span>
+                          </Label>
+                        </div>
+                        <div>
+                          <RadioGroupItem value="matching" id="matching" className="peer sr-only" disabled />
+                          <Label
+                            htmlFor="matching"
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 cursor-not-allowed opacity-50"
+                          >
+                            Matching
+                             <span className="text-xs font-normal mt-1">(Coming Soon)</span>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
                     <Button type="submit" className="w-full" size="lg">
                       Start Quiz <ArrowRight className="ml-2" />
                     </Button>
@@ -534,8 +595,8 @@ export default function Home() {
         }
 
         const { word: currentWord, definition: currentDef } = currentQuizItem;
-        const totalQuestions = definitions.length * 2;
-        const currentQuestionNumber = currentIndex * 2 + (answerState === 'answering' || answerState === 'evaluating' ? 1 : 2);
+        const totalQuestions = definitions.length * (quizType === 'definition_spelling' ? 2 : 1);
+        const currentQuestionNumber = currentIndex * (quizType === 'definition_spelling' ? 2 : 1) + (answerState === 'answering' || answerState === 'evaluating' ? 1 : 2);
 
         return (
           <motion.div
@@ -647,7 +708,7 @@ export default function Home() {
                       </Button>
                     </CardFooter>
                   </motion.div>
-                ) : (
+                ) : ( // spelling state
                   <motion.div
                     key="spelling"
                     initial={{ opacity: 0, y: 10 }}
@@ -683,10 +744,10 @@ export default function Home() {
           </motion.div>
         );
       case "results":
-        const totalPoints = wordResults.length * 2;
+        const totalPoints = wordResults.length * (quizType === 'definition_spelling' ? 2 : 1);
         const finalScore = wordResults.reduce((acc, r) => {
           if (r.definitionCorrect) acc++;
-          if (r.spellingCorrect) acc++;
+          if (quizType === 'definition_spelling' && r.spellingCorrect) acc++;
           return acc;
         }, 0);
 
