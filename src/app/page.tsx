@@ -351,10 +351,10 @@ export default function Home() {
         setSpellingAnswer("");
         setAnswerState("answering");
     } else {
-      const totalPossibleScore = definitions.length * (quizType === 'definition_spelling' ? 2 : 1);
+      const totalPossibleScore = definitions.length;
       const finalScore = wordResults.reduce((acc, r) => {
         if (r.definitionCorrect) acc++;
-        if (r.spellingCorrect) acc++;
+        if (quizType === 'definition_spelling' && r.spellingCorrect) acc++;
         return acc;
       }, 0);
       setScore(finalScore);
@@ -764,8 +764,8 @@ export default function Home() {
         }
 
         const { word: currentWord, definition: currentDef, options: currentOptions } = currentQuizItem;
-        const totalQuestions = definitions.length * (quizType === 'definition_spelling' ? 2 : 1);
-        const currentQuestionNumber = currentIndex * (quizType === 'definition_spelling' ? 2 : 1) + (answerState === 'answering' || answerState === 'evaluating' ? 1 : 2);
+        const totalQuestions = definitions.length;
+        const currentQuestionNumber = currentIndex + 1;
 
         return (
           <motion.div
@@ -934,14 +934,12 @@ export default function Home() {
         );
       case "results":
         const isSpellingQuiz = quizType === 'definition_spelling';
-        const pointsPerWord = isSpellingQuiz ? 2 : 1;
-        const totalPoints = wordResults.length * pointsPerWord;
+        const totalPoints = definitions.length;
         
         let finalScore = score;
         if(quizType !== 'matching') {
             finalScore = wordResults.reduce((acc, r) => {
                 if (r.definitionCorrect) acc++;
-                if (isSpellingQuiz && r.spellingCorrect) acc++;
                 return acc;
             }, 0);
         }
@@ -979,7 +977,7 @@ export default function Home() {
                 </div>
                 <CardTitle className="font-headline text-3xl mt-4">Quiz Complete!</CardTitle>
                 <CardDescription>
-                  You scored {finalScore} out of {quizType === 'matching' ? definitions.length : totalPoints}.
+                  You scored {finalScore} out of {totalPoints}.
                 </CardDescription>
               </CardHeader>
               <CardContent>
