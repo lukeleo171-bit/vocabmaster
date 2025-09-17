@@ -4,7 +4,7 @@ export type QuizItem = {
   options?: string[];
 };
 
-export type QuizState = "input" | "loading" | "quiz" | "results" | "practice";
+export type QuizState = "input" | "loading" | "quiz" | "results" | "practice" | "matching";
 
 export type QuizAnswerState = "answering" | "evaluating" | "spelling";
 
@@ -27,3 +27,8 @@ export type QuizType =
   | 'definition_only'
   | 'multiple_choice'
   | 'matching';
+
+export type MatchedPair = {
+  word: string;
+  definition: string;
+};

@@ -67,6 +67,7 @@ import type {
   PastQuiz,
   WordResult,
   QuizType,
+  MatchedPair,
 } from "@/types/quiz";
 import {
   Dialog,
@@ -74,6 +75,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 type WordInputForm = z.infer<typeof wordInputSchema>;
 
@@ -112,6 +114,13 @@ export default function Home() {
   const [evaluationResult, setEvaluationResult] = useState<{ isCorrect: boolean; feedback: string } | null>(null);
   const [practiceWords, setPracticeWords] = useState<QuizItem[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  
+  // Matching game state
+  const [shuffledDefinitions, setShuffledDefinitions] = useState<QuizItem[]>([]);
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [selectedDefinition, setSelectedDefinition] = useState<string | null>(null);
+  const [matchedPairs, setMatchedPairs] = useState<MatchedPair[]>([]);
+  const [isMatchingCorrect, setIsMatchingCorrect] = useState<boolean[]>([]);
 
 
   const { toast } = useToast();
@@ -133,6 +142,15 @@ export default function Home() {
       console.error("Could not load quiz history from localStorage", error);
     }
   }, []);
+  
+  useEffect(() => {
+    if (selectedWord && selectedDefinition) {
+      setMatchedPairs([...matchedPairs, { word: selectedWord, definition: selectedDefinition }]);
+      setSelectedWord(null);
+      setSelectedDefinition(null);
+    }
+  }, [selectedWord, selectedDefinition, matchedPairs]);
+
 
   const startNewQuiz = async (defs: QuizItem[]) => {
     let quizItems = defs;
@@ -156,6 +174,13 @@ export default function Home() {
         setQuizState('input');
         return;
       }
+    } else if (quizType === 'matching') {
+      setDefinitions(shuffleArray(quizItems));
+      setShuffledDefinitions(shuffleArray(quizItems));
+      setMatchedPairs([]);
+      setIsMatchingCorrect([]);
+      setQuizState("matching");
+      return;
     }
 
     setDefinitions(shuffleArray(quizItems));
@@ -285,7 +310,7 @@ export default function Home() {
   const handleNextAfterEvaluation = () => {
     setEvaluationResult(null);
     setSelectedOption(null);
-    if (quizType === 'definition_only' || quizType === 'multiple_choice') {
+    if (quizType === 'definition_only' || quizType === 'multiple_choice' || quizType === 'matching') {
         handleNextQuestion();
     } else {
         setAnswerState("spelling");
@@ -366,6 +391,32 @@ export default function Home() {
     
     handleNextQuestion();
   }
+  
+  const handleCheckMatches = () => {
+    const results = matchedPairs.map(pair => {
+      const correctDef = definitions.find(d => d.word === pair.word)?.definition;
+      return correctDef === pair.definition;
+    });
+    setIsMatchingCorrect(results);
+    const correctCount = results.filter(Boolean).length;
+    setScore(correctCount);
+    const newResult = { score: correctCount, total: definitions.length };
+    const updatedHistory = [...quizHistory, newResult];
+    setQuizHistory(updatedHistory);
+    try {
+      const wordsKey = JSON.stringify(definitions.map(d => d.word).sort());
+      const updatedPastQuizzes = pastQuizzes.map(p => 
+        p && p.words && JSON.stringify(p.words.sort()) === wordsKey 
+          ? { ...p, history: updatedHistory } 
+          : p
+      ).filter(Boolean);
+      setPastQuizzes(updatedPastQuizzes);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPastQuizzes));
+    } catch (error) {
+      console.error("Could not update quiz history in localStorage", error);
+    }
+    setQuizState("results");
+  };
 
   const handleNewQuiz = () => {
     form.reset();
@@ -575,13 +626,12 @@ export default function Home() {
                           </Label>
                         </div>
                         <div>
-                          <RadioGroupItem value="matching" id="matching" className="peer sr-only" disabled />
+                          <RadioGroupItem value="matching" id="matching" className="peer sr-only" />
                           <Label
                             htmlFor="matching"
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 cursor-not-allowed opacity-50"
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                           >
                             Matching
-                             <span className="text-xs font-normal mt-1">(Coming Soon)</span>
                           </Label>
                         </div>
                       </RadioGroup>
@@ -610,6 +660,82 @@ export default function Home() {
             <p className="text-muted-foreground">This will just take a moment.</p>
           </motion.div>
         );
+      case "matching":
+          const unmatchedWords = definitions.filter(d => !matchedPairs.some(p => p.word === d.word));
+          const unmatchedDefinitions = shuffledDefinitions.filter(d => !matchedPairs.some(p => p.definition === d.definition));
+          
+          return (
+            <motion.div
+              key="matching"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-4xl"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-headline text-3xl">Matching Game</CardTitle>
+                  <CardDescription>Match each word to its correct definition.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Words Column */}
+                        <div className="space-y-2">
+                          <h3 className="font-semibold text-center">Words</h3>
+                          {unmatchedWords.map(item => (
+                            <Button 
+                              key={item.word}
+                              variant={selectedWord === item.word ? "default" : "outline"}
+                              className="w-full justify-start"
+                              onClick={() => setSelectedWord(item.word)}
+                              disabled={matchedPairs.some(p => p.word === item.word)}
+                            >
+                              {item.word}
+                            </Button>
+                          ))}
+                        </div>
+                        {/* Definitions Column */}
+                        <div className="space-y-2">
+                           <h3 className="font-semibold text-center">Definitions</h3>
+                          {unmatchedDefinitions.map(item => (
+                            <Button 
+                              key={item.definition}
+                              variant={selectedDefinition === item.definition ? "default" : "outline"}
+                              className="w-full justify-start text-left h-auto"
+                              onClick={() => setSelectedDefinition(item.definition)}
+                              disabled={matchedPairs.some(p => p.definition === item.definition)}
+                            >
+                              {item.definition}
+                            </Button>
+                          ))}
+                        </div>
+                    </div>
+                    {matchedPairs.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="font-semibold mb-2">Your Matches</h3>
+                        <div className="space-y-2">
+                          {matchedPairs.map((pair, index) => (
+                            <div key={index} className="flex justify-between items-center p-2 bg-secondary rounded-md">
+                              <span className="font-medium capitalize">{pair.word}</span>
+                              <ArrowRight className="h-4 w-4" />
+                              <span className="text-right">{pair.definition}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    onClick={handleCheckMatches} 
+                    className="w-full"
+                    disabled={unmatchedWords.length > 0}
+                  >
+                    Check Answers
+                  </Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          )
       case "practice":
       case "quiz":
         const isPractice = quizState === 'practice';
@@ -811,11 +937,14 @@ export default function Home() {
         const pointsPerWord = isSpellingQuiz ? 2 : 1;
         const totalPoints = wordResults.length * pointsPerWord;
         
-        const finalScore = wordResults.reduce((acc, r) => {
-          if (r.definitionCorrect) acc++;
-          if (isSpellingQuiz && r.spellingCorrect) acc++;
-          return acc;
-        }, 0);
+        let finalScore = score;
+        if(quizType !== 'matching') {
+            finalScore = wordResults.reduce((acc, r) => {
+                if (r.definitionCorrect) acc++;
+                if (isSpellingQuiz && r.spellingCorrect) acc++;
+                return acc;
+            }, 0);
+        }
 
         const incorrect = totalPoints - finalScore;
         const chartData = [
@@ -827,8 +956,14 @@ export default function Home() {
             Score: result.score,
         }));
         
-        const correctWords = wordResults.filter(r => r.definitionCorrect && (isSpellingQuiz ? r.spellingCorrect : true));
-        const incorrectWords = wordResults.filter(r => !r.definitionCorrect || (isSpellingQuiz && !r.spellingCorrect));
+        const correctWords = quizType === 'matching' 
+          ? matchedPairs.filter((p, i) => isMatchingCorrect[i]).map(p => ({ word: p.word, definition: p.definition }))
+          : wordResults.filter(r => r.definitionCorrect && (isSpellingQuiz ? r.spellingCorrect : true));
+        
+        const incorrectWords = quizType === 'matching'
+          ? matchedPairs.filter((p, i) => !isMatchingCorrect[i]).map(p => ({ word: p.word, definition: p.definition }))
+          : wordResults.filter(r => !r.definitionCorrect || (isSpellingQuiz && !r.spellingCorrect));
+          
 
         return (
           <motion.div
@@ -844,7 +979,7 @@ export default function Home() {
                 </div>
                 <CardTitle className="font-headline text-3xl mt-4">Quiz Complete!</CardTitle>
                 <CardDescription>
-                  You scored {finalScore} out of {totalPoints}.
+                  You scored {finalScore} out of {quizType === 'matching' ? definitions.length : totalPoints}.
                 </CardDescription>
               </CardHeader>
               <CardContent>
