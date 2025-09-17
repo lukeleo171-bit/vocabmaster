@@ -134,10 +134,9 @@ export default function Home() {
     }
   }, []);
 
-  const startNewQuiz = async (defs: QuizItem[], state: QuizState = "quiz") => {
+  const startNewQuiz = async (defs: QuizItem[]) => {
     let quizItems = defs;
      if (quizType === 'multiple_choice') {
-      setQuizState('loading');
       try {
         const itemsWithOptions = await Promise.all(
           defs.map(async (d) => {
@@ -172,7 +171,7 @@ export default function Home() {
     setSpellingAnswer("");
     setEvaluationResult(null);
     setAnswerState("answering");
-    setQuizState(state);
+    setQuizState("quiz");
   }
 
   const handleStartQuiz = async (data: WordInputForm) => {
