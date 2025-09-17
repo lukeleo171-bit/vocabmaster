@@ -137,6 +137,7 @@ export default function Home() {
   const startNewQuiz = async (defs: QuizItem[]) => {
     let quizItems = defs;
      if (quizType === 'multiple_choice') {
+       setQuizState("loading");
       try {
         const itemsWithOptions = await Promise.all(
           defs.map(async (d) => {
@@ -570,6 +571,7 @@ export default function Home() {
                             className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                           >
                             Multiple Choice
+                            <span className="text-xs font-normal mt-1 text-muted-foreground">(May take a moment to generate)</span>
                           </Label>
                         </div>
                         <div>
