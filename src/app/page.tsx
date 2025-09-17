@@ -209,7 +209,7 @@ export default function Home() {
     }
     setAnswerState("evaluating");
     try {
-      const currentQuizItem = definitions[currentIndex];
+      const currentQuizItem = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
       const result = await evaluateAnswerAction({
         word: currentQuizItem.word,
         userAnswer: userAnswer,
@@ -241,7 +241,7 @@ export default function Home() {
   };
 
   const handleSpellingSubmit = () => {
-    const currentQuizItem = definitions[currentIndex];
+    const currentQuizItem = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
     const isCorrect = spellingAnswer.trim().toLowerCase() === currentQuizItem.word.toLowerCase();
     
     const currentWordResult = wordResults.find(wr => wr.word === currentQuizItem.word);
@@ -252,11 +252,11 @@ export default function Home() {
 
     if (quizState === 'practice') {
       if (isCorrect && currentWordResult?.definitionCorrect) {
-        const remainingWords = definitions.filter(d => d.word !== currentQuizItem.word);
+        const remainingWords = practiceWords.filter(d => d.word !== currentQuizItem.word);
         if(remainingWords.length === 0) {
           setQuizState('results');
         } else {
-          setDefinitions(shuffleArray(remainingWords));
+          setPracticeWords(shuffleArray(remainingWords));
           setCurrentIndex(0);
           setUserAnswer("");
           setSpellingAnswer("");
@@ -264,7 +264,7 @@ export default function Home() {
         }
       } else {
          // If wrong, move to the next word and cycle back later
-        if (currentIndex < definitions.length - 1) {
+        if (currentIndex < practiceWords.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
             setCurrentIndex(0);
@@ -327,13 +327,18 @@ export default function Home() {
       .map(r => ({ word: r.word, definition: r.definition }));
     
     if (missed.length > 0) {
-      setPracticeWords(missed);
-      startNewQuiz(missed, "practice");
+      setPracticeWords(shuffleArray(missed));
+      setCurrentIndex(0);
+      setUserAnswer("");
+      setSpellingAnswer("");
+      setEvaluationResult(null);
+      setAnswerState("answering");
+      setQuizState("practice");
     }
   };
 
   const handleEnhancementRequest = async (type: EnhancementType) => {
-    const currentDefinition = definitions[currentIndex];
+    const currentDefinition = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
     setIsEnhancementOpen(true);
     setIsEnhancementLoading(true);
     setEnhancementContent({ title: `Enhancing explanation for "${currentDefinition.word}"...`, content: "" });
@@ -478,12 +483,10 @@ export default function Home() {
       case "practice":
       case "quiz":
         const isPractice = quizState === 'practice';
-        const currentWord = definitions[currentIndex]?.word;
-        const currentDef = definitions[currentIndex]?.definition;
-        const totalQuestions = definitions.length * 2;
-        const currentQuestionNumber = currentIndex * 2 + (answerState === 'answering' || answerState === 'evaluating' ? 1 : 2);
+        const currentQuizItems = isPractice ? practiceWords : definitions;
+        const currentQuizItem = currentQuizItems[currentIndex];
         
-        if (!currentWord) {
+        if (!currentQuizItem) {
             return (
                 <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     <Card>
@@ -503,6 +506,10 @@ export default function Home() {
                 </motion.div>
             );
         }
+
+        const { word: currentWord, definition: currentDef } = currentQuizItem;
+        const totalQuestions = definitions.length * 2;
+        const currentQuestionNumber = currentIndex * 2 + (answerState === 'answering' || answerState === 'evaluating' ? 1 : 2);
 
         return (
           <motion.div
@@ -524,7 +531,7 @@ export default function Home() {
                     <CardTitle className="font-headline text-3xl capitalize">{currentWord}</CardTitle>
                   )}
                   <p className="text-sm font-medium text-muted-foreground">
-                    {isPractice ? `Words remaining: ${definitions.length}` : `Question ${currentQuestionNumber} of ${totalQuestions}`}
+                    {isPractice ? `Words remaining: ${currentQuizItems.length}` : `Question ${currentQuestionNumber} of ${totalQuestions}`}
                   </p>
                 </div>
                 {!isPractice && <Progress
@@ -792,3 +799,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
