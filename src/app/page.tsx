@@ -351,7 +351,7 @@ export default function Home() {
         setSpellingAnswer("");
         setAnswerState("answering");
     } else {
-      const totalPossibleScore = definitions.length;
+      const totalPossibleScore = quizType === 'definition_spelling' ? definitions.length * 2 : definitions.length;
       const finalScore = wordResults.reduce((acc, r) => {
         if (r.definitionCorrect) acc++;
         if (quizType === 'definition_spelling' && r.spellingCorrect) acc++;
@@ -934,14 +934,18 @@ export default function Home() {
         );
       case "results":
         const isSpellingQuiz = quizType === 'definition_spelling';
-        const totalPoints = definitions.length;
+        const isMatchingQuiz = quizType === 'matching';
+        const totalPoints = definitions.length * ((isSpellingQuiz || isMatchingQuiz) ? 2 : 1);
         
         let finalScore = score;
         if(quizType !== 'matching') {
             finalScore = wordResults.reduce((acc, r) => {
                 if (r.definitionCorrect) acc++;
+                if (isSpellingQuiz && r.spellingCorrect) acc++;
                 return acc;
             }, 0);
+        } else {
+          finalScore = score * 2;
         }
 
         const incorrect = totalPoints - finalScore;
@@ -951,7 +955,7 @@ export default function Home() {
         ];
         const historyChartData = quizHistory.map((result, index) => ({
             name: `Quiz ${index + 1}`,
-            Score: result.score,
+            Score: quizType === 'matching' ? result.score * 2 : result.score,
         }));
         
         const correctWords = quizType === 'matching' 
@@ -1032,7 +1036,7 @@ export default function Home() {
                 )}
               </CardContent>
               <CardFooter className="flex-col sm:flex-row gap-4">
-                {incorrectWords.length > 0 && (
+                {incorrectWords.length > 0 && quizType !== 'matching' && (
                    <Button onClick={handlePracticeMissedWords} className="w-full" size="lg">
                       <Repeat className="mr-2 h-4 w-4" />
                       Practice Missed Words
@@ -1086,3 +1090,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
