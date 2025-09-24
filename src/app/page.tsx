@@ -400,7 +400,8 @@ export default function Home() {
     setIsMatchingCorrect(results);
     const correctCount = results.filter(Boolean).length;
     setScore(correctCount);
-    const newResult = { score: correctCount, total: definitions.length };
+    const totalPossibleScore = definitions.length;
+    const newResult = { score: correctCount, total: totalPossibleScore };
     const updatedHistory = [...quizHistory, newResult];
     setQuizHistory(updatedHistory);
     try {
@@ -443,6 +444,10 @@ export default function Home() {
       setAnswerState("answering");
       setQuizState("practice");
     }
+  };
+  
+  const handleRemoveMatch = (indexToRemove: number) => {
+    setMatchedPairs(matchedPairs.filter((_, index) => index !== indexToRemove));
   };
 
   const handleEnhancementRequest = async (type: EnhancementType) => {
@@ -717,7 +722,11 @@ export default function Home() {
                             <div key={index} className="flex justify-between items-center p-2 bg-secondary rounded-md">
                               <span className="font-medium capitalize">{pair.word}</span>
                               <ArrowRight className="h-4 w-4" />
-                              <span className="text-right">{pair.definition}</span>
+                              <span className="text-right flex-1">{pair.definition}</span>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 ml-2 shrink-0" onClick={() => handleRemoveMatch(index)}>
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Remove match</span>
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -935,7 +944,9 @@ export default function Home() {
       case "results":
         const isSpellingQuiz = quizType === 'definition_spelling';
         const isMatchingQuiz = quizType === 'matching';
-        const totalPoints = definitions.length * ((isSpellingQuiz || isMatchingQuiz) ? 2 : 1);
+        const totalPoints = isMatchingQuiz 
+          ? definitions.length
+          : (isSpellingQuiz ? definitions.length * 2 : definitions.length);
         
         let finalScore = score;
         if(quizType !== 'matching') {
@@ -944,18 +955,19 @@ export default function Home() {
                 if (isSpellingQuiz && r.spellingCorrect) acc++;
                 return acc;
             }, 0);
-        } else {
-          finalScore = score * 2;
         }
 
-        const incorrect = totalPoints - finalScore;
+        const finalTotalPoints = isMatchingQuiz ? totalPoints * 2 : totalPoints;
+        const finalDisplayScore = isMatchingQuiz ? finalScore * 2 : finalScore;
+
+        const incorrect = finalTotalPoints - finalDisplayScore;
         const chartData = [
-          { name: "Correct", value: finalScore, fill: "hsl(var(--chart-1))" },
+          { name: "Correct", value: finalDisplayScore, fill: "hsl(var(--chart-1))" },
           { name: "Incorrect", value: incorrect, fill: "hsl(var(--destructive))" },
         ];
         const historyChartData = quizHistory.map((result, index) => ({
             name: `Quiz ${index + 1}`,
-            Score: quizType === 'matching' ? result.score * 2 : result.score,
+            Score: result.score * (quizHistory[index].total === definitions.length && isMatchingQuiz ? 2 : 1),
         }));
         
         const correctWords = quizType === 'matching' 
@@ -981,7 +993,7 @@ export default function Home() {
                 </div>
                 <CardTitle className="font-headline text-3xl mt-4">Quiz Complete!</CardTitle>
                 <CardDescription>
-                  You scored {finalScore} out of {totalPoints}.
+                  You scored {finalDisplayScore} out of {finalTotalPoints}.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1025,7 +1037,7 @@ export default function Home() {
                         <LineChart data={historyChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
-                          <YAxis allowDecimals={false} domain={[0, totalPoints]}/>
+                          <YAxis allowDecimals={false} domain={[0, finalTotalPoints]}/>
                           <Tooltip />
                           <Legend />
                           <Line type="monotone" dataKey="Score" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />
