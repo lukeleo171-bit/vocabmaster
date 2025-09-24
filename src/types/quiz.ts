@@ -11,7 +11,7 @@ export type QuizAnswerState = "answering" | "evaluating" | "spelling";
 export type EnhancementType = "more detail" | "examples" | "context";
 
 export type PastQuiz = {
-  words: string[];
+  words: (string | QuizItem)[];
   history: { score: number; total: number }[];
 };
 

@@ -223,6 +223,7 @@ export default function Home() {
     }
 
     return entries.map(entry => {
+        if (typeof entry !== 'string') return entry;
         const match = entry.match(/^(.*?)\s*\((.*)\)$/);
         if (match) {
             const word = match[1].trim();
@@ -240,9 +241,10 @@ export default function Home() {
     
     const wordsAndDefs = parseWordInput(data.words);
     
-    const wordsForHistory = wordsAndDefs.map(item => typeof item === 'string' ? item : item.word);
+    const wordsForHistoryKey = JSON.stringify(wordsAndDefs.map(item => typeof item === 'string' ? item : ({word: item.word, definition: item.definition})).sort());
 
-    if (wordsForHistory.length === 0) {
+
+    if (wordsAndDefs.length === 0) {
       setQuizState("input");
       toast({
         title: "No words provided",
@@ -251,9 +253,8 @@ export default function Home() {
       });
       return;
     }
-
-    const wordsKey = JSON.stringify(wordsForHistory.sort());
-    const existingQuiz = pastQuizzes.find(p => p && p.words && JSON.stringify(p.words.sort()) === wordsKey);
+    
+    const existingQuiz = pastQuizzes.find(p => p && p.words && JSON.stringify(p.words.sort()) === wordsForHistoryKey);
     setQuizHistory(existingQuiz ? existingQuiz.history : []);
     
     // Save to history
@@ -262,10 +263,10 @@ export default function Home() {
       let newHistory: PastQuiz[] = [...filteredPastQuizzes];
       
       if (!existingQuiz) {
-        newHistory = [{ words: wordsForHistory, history: [] }, ...filteredPastQuizzes].slice(0, MAX_HISTORY_ITEMS);
+        newHistory = [{ words: wordsAndDefs, history: [] }, ...filteredPastQuizzes].slice(0, MAX_HISTORY_ITEMS);
       } else {
         // Move the existing quiz to the top of the list
-        newHistory = [existingQuiz, ...filteredPastQuizzes.filter(p => p && p.words && JSON.stringify(p.words.sort()) !== wordsKey)];
+        newHistory = [existingQuiz, ...filteredPastQuizzes.filter(p => p && p.words && JSON.stringify(p.words.sort()) !== wordsForHistoryKey)];
       }
 
       setPastQuizzes(newHistory);
@@ -518,7 +519,10 @@ export default function Home() {
       const inputWords = value.toLowerCase().split(/,?\s+/);
       const matchingQuizzes = pastQuizzes.filter(quiz => 
         quiz && quiz.words && inputWords.every(inputWord => 
-          quiz.words.some(quizWord => quizWord.toLowerCase().startsWith(inputWord))
+          (quiz.words as (string|QuizItem)[]).some(quizWordOrItem => {
+            const quizWord = typeof quizWordOrItem === 'string' ? quizWordOrItem : quizWordOrItem.word;
+            return quizWord.toLowerCase().startsWith(inputWord)
+          })
         )
       );
       setSuggestions(matchingQuizzes);
@@ -529,7 +533,13 @@ export default function Home() {
 
   const handleSuggestionClick = (quiz: PastQuiz) => {
     if (!quiz.words) return;
-    form.setValue("words", quiz.words.join(", "));
+    const wordsString = (quiz.words as (string | QuizItem)[]).map(item => {
+      if (typeof item === 'string') {
+        return item;
+      }
+      return `${item.word} (${item.definition})`;
+    }).join(", ");
+    form.setValue("words", wordsString);
     setSuggestions([]);
   };
 
@@ -624,7 +634,9 @@ export default function Home() {
                               className="w-full justify-start h-auto text-left"
                               onClick={() => handleSuggestionClick(quiz)}
                             >
-                              <p className="truncate text-sm text-muted-foreground">{quiz.words ? quiz.words.join(', ') : ''}</p>
+                              <p className="truncate text-sm text-muted-foreground">
+                                {quiz.words ? (quiz.words as (string|QuizItem)[]).map(w => typeof w === 'string' ? w : w.word).join(', ') : ''}
+                              </p>
                             </Button>
                           ))}
                         </div>
@@ -1137,7 +1149,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
