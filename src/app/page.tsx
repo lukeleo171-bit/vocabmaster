@@ -202,12 +202,23 @@ export default function Home() {
 
   const handleStartQuiz = async (data: WordInputForm) => {
     setQuizState("loading");
-    const words = data.words
-      .split(/,?\s+/)
-      .map((w) => w.trim())
-      .filter(Boolean);
+    
+    const wordEntries = data.words.split(',').map(entry => entry.trim()).filter(Boolean);
+    const wordsAndDefs: (string | QuizItem)[] = wordEntries.map(entry => {
+      const match = entry.match(/^(.*?)\s*\((.*?)\)$/);
+      if (match) {
+        const word = match[1].trim();
+        const definition = match[2].trim();
+        if (word && definition) {
+          return { word, definition };
+        }
+      }
+      return entry; // Return the original entry if it doesn't match the format
+    });
+    
+    const wordsForHistory = wordsAndDefs.map(item => typeof item === 'string' ? item : item.word);
 
-    if (words.length === 0) {
+    if (wordsForHistory.length === 0) {
       setQuizState("input");
       toast({
         title: "No words provided",
@@ -217,7 +228,7 @@ export default function Home() {
       return;
     }
 
-    const wordsKey = JSON.stringify(words.sort());
+    const wordsKey = JSON.stringify(wordsForHistory.sort());
     const existingQuiz = pastQuizzes.find(p => p && p.words && JSON.stringify(p.words.sort()) === wordsKey);
     setQuizHistory(existingQuiz ? existingQuiz.history : []);
     
@@ -225,9 +236,9 @@ export default function Home() {
     try {
       const filteredPastQuizzes = pastQuizzes.filter(p => p && p.words);
       let newHistory: PastQuiz[] = [...filteredPastQuizzes];
-
+      
       if (!existingQuiz) {
-        newHistory = [{ words, history: [] }, ...filteredPastQuizzes].slice(0, MAX_HISTORY_ITEMS);
+        newHistory = [{ words: wordsForHistory, history: [] }, ...filteredPastQuizzes].slice(0, MAX_HISTORY_ITEMS);
       } else {
         // Move the existing quiz to the top of the list
         newHistory = [existingQuiz, ...filteredPastQuizzes.filter(p => p && p.words && JSON.stringify(p.words.sort()) !== wordsKey)];
@@ -240,7 +251,7 @@ export default function Home() {
     }
 
     try {
-      const defs = await getQuizDefinitionsAction(words);
+      const defs = await getQuizDefinitionsAction(wordsAndDefs);
       await startNewQuiz(defs);
     } catch (error) {
       setQuizState("input");
@@ -545,7 +556,7 @@ export default function Home() {
                   Enter Your Vocabulary
                 </CardTitle>
                 <CardDescription>
-                  Enter your vocabulary words, separated by commas or spaces. Or select a recent quiz.
+                  Enter words separated by commas. You can also provide your own definitions like this: word (your definition).
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -562,7 +573,7 @@ export default function Home() {
                           <FormLabel className="sr-only">Vocabulary Words</FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder="e.g., egregious, ephemeral, esoteric"
+                              placeholder="e.g., egregious (outstandingly bad), ephemeral, esoteric"
                               className="min-h-[150px] resize-y"
                               {...field}
                               onChange={(e) => handleWordInputChange(e.target.value)}
