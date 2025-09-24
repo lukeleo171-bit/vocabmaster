@@ -200,21 +200,45 @@ export default function Home() {
     setQuizState("quiz");
   }
 
+  const parseWordInput = (input: string): (string | QuizItem)[] => {
+    const entries: (string | QuizItem)[] = [];
+    let current = '';
+    let inParentheses = false;
+    for (let i = 0; i < input.length; i++) {
+        const char = input[i];
+        if (char === '(') inParentheses = true;
+        if (char === ')') inParentheses = false;
+
+        if (char === ',' && !inParentheses) {
+            if (current.trim()) {
+                entries.push(current.trim());
+            }
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    if (current.trim()) {
+        entries.push(current.trim());
+    }
+
+    return entries.map(entry => {
+        const match = entry.match(/^(.*?)\s*\((.*)\)$/);
+        if (match) {
+            const word = match[1].trim();
+            const definition = match[2].trim();
+            if (word && definition) {
+                return { word, definition };
+            }
+        }
+        return entry; // Return the original entry if it doesn't match the format
+    });
+  };
+
   const handleStartQuiz = async (data: WordInputForm) => {
     setQuizState("loading");
     
-    const wordEntries = data.words.split(',').map(entry => entry.trim()).filter(Boolean);
-    const wordsAndDefs: (string | QuizItem)[] = wordEntries.map(entry => {
-      const match = entry.match(/^(.*?)\s*\((.*?)\)$/);
-      if (match) {
-        const word = match[1].trim();
-        const definition = match[2].trim();
-        if (word && definition) {
-          return { word, definition };
-        }
-      }
-      return entry; // Return the original entry if it doesn't match the format
-    });
+    const wordsAndDefs = parseWordInput(data.words);
     
     const wordsForHistory = wordsAndDefs.map(item => typeof item === 'string' ? item : item.word);
 
@@ -968,7 +992,7 @@ export default function Home() {
             }, 0);
         }
 
-        const finalTotalPoints = isMatchingQuiz ? totalPoints * 2 : totalPoints;
+        const finalTotalPoints = isMatchingQuiz ? definitions.length * 2 : totalPoints;
         const finalDisplayScore = isMatchingQuiz ? finalScore * 2 : finalScore;
 
         const incorrect = finalTotalPoints - finalDisplayScore;
@@ -978,7 +1002,7 @@ export default function Home() {
         ];
         const historyChartData = quizHistory.map((result, index) => ({
             name: `Quiz ${index + 1}`,
-            Score: result.score * (quizHistory[index].total === definitions.length && isMatchingQuiz ? 2 : 1),
+            Score: result.total === definitions.length && isMatchingQuiz ? result.score * 2 : result.score,
         }));
         
         const correctWords = quizType === 'matching' 
@@ -1113,5 +1137,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
