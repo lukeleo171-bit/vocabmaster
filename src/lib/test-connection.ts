@@ -4,10 +4,10 @@ export async function testDatabaseConnection() {
   try {
     console.log('Testing Supabase connection...');
     
-    // Test basic connection
+    // Test basic connection by trying to access the database
     const { data, error } = await supabase
       .from('words')
-      .select('count')
+      .select('*')
       .limit(1);
 
     if (error) {
