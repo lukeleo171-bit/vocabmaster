@@ -10,6 +10,7 @@ import {
   generateMultipleChoiceOptions,
 } from '@/ai/flows/generate-multiple-choice-options';
 import type {EnhancementType, QuizItem} from '@/types/quiz';
+import { supabase } from '@/lib/supabase';
 import {
   evaluateAnswer,
   type EvaluateAnswerInput,
@@ -32,6 +33,27 @@ export async function getQuizDefinitionsAction(
     }
     
     const allDefinitions = [...customDefinitions, ...fetchedDefinitions];
+
+    // Persist to Supabase (best-effort, non-blocking for user experience)
+    try {
+      if (allDefinitions.length > 0) {
+        const rows = allDefinitions.map(d => ({
+          word: d.word,
+          definition: d.definition,
+          difficulty: 'medium',
+        }));
+        // Upsert on unique word constraint
+        const { error } = await supabase
+          .from('words')
+          .upsert(rows, { onConflict: 'word', ignoreDuplicates: false });
+        if (error) {
+          console.error('Supabase upsert(words) failed:', error.message);
+        }
+      }
+    } catch (persistErr) {
+      console.error('Failed to persist words to Supabase:', persistErr);
+      // Do not throw; persistence failure should not block quiz generation
+    }
 
     // Ensure the order matches the original input words array structure
     return words.map(wordOrItem => {
