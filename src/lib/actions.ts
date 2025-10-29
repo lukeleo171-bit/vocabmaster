@@ -26,13 +26,40 @@ export async function getQuizDefinitionsAction(
     const wordsToFetch = words.filter(w => typeof w === 'string') as string[];
     const customDefinitions = words.filter(w => typeof w !== 'string') as QuizItem[];
 
+    // 1) Get any existing definitions from Supabase first
+    let existingDefinitions: QuizItem[] = [];
+    try {
+      if (wordsToFetch.length > 0) {
+        const { data, error } = await supabase
+          .from('words')
+          .select('word, definition')
+          .in('word', wordsToFetch);
+        if (error) {
+          console.error('Supabase read(words) failed:', error.message);
+        } else if (data) {
+          existingDefinitions = data.map(r => ({ word: r.word, definition: r.definition }));
+        }
+      }
+    } catch (readErr) {
+      console.error('Failed to read existing words from Supabase:', readErr);
+    }
+
+    // Determine which words still need AI definitions
+    const existingWordsLower = new Set(existingDefinitions.map(d => d.word.toLowerCase()));
+    const wordsNeedingAi = wordsToFetch.filter(w => !existingWordsLower.has(w.toLowerCase()));
+
+    // 2) Only call AI for words that don't already exist
     let fetchedDefinitions: QuizItem[] = [];
-    if (wordsToFetch.length > 0) {
-      const result = await generateQuizDefinitions({words: wordsToFetch});
+    if (wordsNeedingAi.length > 0) {
+      const result = await generateQuizDefinitions({words: wordsNeedingAi});
       fetchedDefinitions = result.definitions;
     }
     
-    const allDefinitions = [...customDefinitions, ...fetchedDefinitions];
+    const allDefinitions = [
+      ...customDefinitions,
+      ...existingDefinitions,
+      ...fetchedDefinitions,
+    ];
 
     // Persist to Supabase (best-effort, non-blocking for user experience)
     try {
@@ -42,10 +69,10 @@ export async function getQuizDefinitionsAction(
           definition: d.definition,
           difficulty: 'medium',
         }));
-        // Upsert on unique word constraint
+        // Upsert on unique word constraint but do not overwrite existing definitions
         const { error } = await supabase
           .from('words')
-          .upsert(rows, { onConflict: 'word', ignoreDuplicates: false });
+          .upsert(rows, { onConflict: 'word', ignoreDuplicates: true });
         if (error) {
           console.error('Supabase upsert(words) failed:', error.message);
         }
