@@ -61,6 +61,41 @@ CREATE TRIGGER update_words_updated_at BEFORE UPDATE ON words
 CREATE TRIGGER update_user_progress_updated_at BEFORE UPDATE ON user_progress
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Enable Row Level Security
+ALTER TABLE words ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quizzes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for words table
+-- Allow anyone to read words
+CREATE POLICY "Allow public read access to words" ON words
+    FOR SELECT USING (true);
+
+-- Allow anonymous inserts (for quiz generation)
+CREATE POLICY "Allow public insert access to words" ON words
+    FOR INSERT WITH CHECK (true);
+
+-- Allow updates to existing words (optional - if you want to allow definition updates)
+CREATE POLICY "Allow public update access to words" ON words
+    FOR UPDATE USING (true);
+
+-- Create RLS policies for quizzes table
+CREATE POLICY "Allow public read access to quizzes" ON quizzes
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert access to quizzes" ON quizzes
+    FOR INSERT WITH CHECK (true);
+
+-- Create RLS policies for user_progress table
+CREATE POLICY "Allow public read access to user_progress" ON user_progress
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert access to user_progress" ON user_progress
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update access to user_progress" ON user_progress
+    FOR UPDATE USING (true);
+
 -- Insert some sample data
 INSERT INTO words (word, definition, difficulty) VALUES
     ('serendipity', 'The occurrence and development of events by chance in a happy or beneficial way', 'hard'),

@@ -69,16 +69,25 @@ export async function getQuizDefinitionsAction(
           definition: d.definition,
           difficulty: 'medium',
         }));
+        console.log(`[Supabase] Attempting to upsert ${rows.length} words:`, rows.map(r => r.word));
         // Upsert on unique word constraint but do not overwrite existing definitions
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('words')
-          .upsert(rows, { onConflict: 'word', ignoreDuplicates: true });
+          .upsert(rows, { onConflict: 'word', ignoreDuplicates: true })
+          .select();
         if (error) {
-          console.error('Supabase upsert(words) failed:', error.message);
+          console.error('[Supabase] Upsert failed:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+          });
+        } else {
+          console.log(`[Supabase] Successfully upserted ${data?.length || 0} words`);
         }
       }
     } catch (persistErr) {
-      console.error('Failed to persist words to Supabase:', persistErr);
+      console.error('[Supabase] Exception during persist:', persistErr);
       // Do not throw; persistence failure should not block quiz generation
     }
 
