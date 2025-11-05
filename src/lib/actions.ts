@@ -62,29 +62,33 @@ export async function getQuizDefinitionsAction(
     ];
 
     // Persist to Supabase (best-effort, non-blocking for user experience)
+    // Only insert NEW definitions (fetchedDefinitions + customDefinitions), not existing ones
     try {
-      if (allDefinitions.length > 0) {
-        const rows = allDefinitions.map(d => ({
+      const newDefinitions = [...customDefinitions, ...fetchedDefinitions];
+      if (newDefinitions.length > 0) {
+        const rows = newDefinitions.map(d => ({
           word: d.word,
           definition: d.definition,
           difficulty: 'medium',
         }));
-        console.log(`[Supabase] Attempting to upsert ${rows.length} words:`, rows.map(r => r.word));
-        // Upsert on unique word constraint but do not overwrite existing definitions
+        console.log(`[Supabase] Attempting to insert ${rows.length} new words:`, rows.map(r => r.word));
+        // Insert new words (use upsert to handle any race conditions)
         const { data, error } = await supabase
           .from('words')
           .upsert(rows, { onConflict: 'word', ignoreDuplicates: true })
           .select();
         if (error) {
-          console.error('[Supabase] Upsert failed:', {
+          console.error('[Supabase] Insert failed:', {
             message: error.message,
             details: error.details,
             hint: error.hint,
             code: error.code,
           });
         } else {
-          console.log(`[Supabase] Successfully upserted ${data?.length || 0} words`);
+          console.log(`[Supabase] Successfully inserted ${data?.length || 0} new words`);
         }
+      } else {
+        console.log('[Supabase] No new words to insert - all words already exist in database');
       }
     } catch (persistErr) {
       console.error('[Supabase] Exception during persist:', persistErr);
