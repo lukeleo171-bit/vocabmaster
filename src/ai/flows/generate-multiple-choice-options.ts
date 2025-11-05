@@ -43,7 +43,14 @@ const prompt = ai.definePrompt({
 Word: {{word}}
 Correct Definition: {{correctDefinition}}
 
-Generate three incorrect definitions that could plausibly be the right answer. Do not include the correct definition in your output.`,
+IMPORTANT REQUIREMENTS:
+1. Generate three incorrect definitions that are DISTINCTLY different from the correct answer - they should be clearly wrong but sound plausible
+2. DO NOT use other definitions, synonyms, or variations of the word "{{word}}" - these would be too similar and confusing
+3. Use definitions from completely different words that are unrelated to "{{word}}"
+4. Make each wrong answer clearly distinguishable from the correct definition - avoid subtle differences
+5. The wrong answers should be plausible enough to be believable as definitions, but clearly incorrect for this specific word
+
+Generate three incorrect definitions that meet these criteria.`,
 });
 
 const generateMultipleChoiceOptionsFlow = ai.defineFlow(
