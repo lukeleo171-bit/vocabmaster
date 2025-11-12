@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS words (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     word VARCHAR(255) NOT NULL UNIQUE,
     definition TEXT NOT NULL,
-    difficulty VARCHAR(20) CHECK (difficulty IN ('easy', 'medium', 'hard')) DEFAULT 'medium',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -40,7 +39,6 @@ CREATE TABLE IF NOT EXISTS user_progress (
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_words_difficulty ON words(difficulty);
 CREATE INDEX IF NOT EXISTS idx_quizzes_word_id ON quizzes(word_id);
 CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_progress(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_progress_word_id ON user_progress(word_id);
@@ -97,13 +95,13 @@ CREATE POLICY "Allow public update access to user_progress" ON user_progress
     FOR UPDATE USING (true);
 
 -- Insert some sample data
-INSERT INTO words (word, definition, difficulty) VALUES
-    ('serendipity', 'The occurrence and development of events by chance in a happy or beneficial way', 'hard'),
-    ('ephemeral', 'Lasting for a very short time', 'medium'),
-    ('ubiquitous', 'Present, appearing, or found everywhere', 'hard'),
-    ('mellifluous', 'Sweet or musical; pleasant to hear', 'hard'),
-    ('petrichor', 'The pleasant, earthy smell after rain', 'medium'),
-    ('wanderlust', 'A strong desire to travel and explore the world', 'easy'),
-    ('nostalgia', 'A sentimental longing for the past', 'easy'),
-    ('eloquent', 'Fluent or persuasive in speaking or writing', 'medium')
+INSERT INTO words (word, definition) VALUES
+    ('serendipity', 'The occurrence and development of events by chance in a happy or beneficial way'),
+    ('ephemeral', 'Lasting for a very short time'),
+    ('ubiquitous', 'Present, appearing, or found everywhere'),
+    ('mellifluous', 'Sweet or musical; pleasant to hear'),
+    ('petrichor', 'The pleasant, earthy smell after rain'),
+    ('wanderlust', 'A strong desire to travel and explore the world'),
+    ('nostalgia', 'A sentimental longing for the past'),
+    ('eloquent', 'Fluent or persuasive in speaking or writing')
 ON CONFLICT (word) DO NOTHING;

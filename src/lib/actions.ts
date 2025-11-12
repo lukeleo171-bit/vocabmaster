@@ -72,7 +72,6 @@ export async function getQuizDefinitionsAction(
         const rows = newDefinitions.map(d => ({
           word: d.word,
           definition: d.definition,
-          difficulty: 'medium',
         }));
         console.log(`[Supabase] Attempting to insert ${rows.length} new words:`, rows.map(r => r.word));
         // Insert new words (use upsert to handle any race conditions)
