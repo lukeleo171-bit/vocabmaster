@@ -6,7 +6,7 @@ export type QuizItem = {
 
 export type QuizState = "input" | "loading" | "quiz" | "results" | "practice" | "matching";
 
-export type QuizAnswerState = "answering" | "evaluating" | "spelling";
+export type QuizAnswerState = "answering" | "evaluating" | "spelling" | "manual-evaluation";
 
 export type EnhancementType = "more detail" | "examples" | "context";
 

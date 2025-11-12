@@ -335,12 +335,29 @@ export default function Home() {
     } catch (error) {
       toast({
         title: "Evaluation Error",
-        description: "Could not evaluate your answer. Please proceed with self-evaluation.",
+        description: "AI evaluation failed. Please mark your answer manually.",
         variant: "destructive",
       });
-      // Fallback to self-evaluation UI if API fails
-      setEvaluationResult({ isCorrect: false, feedback: 'Error evaluating answer.' });
+      // Fallback to self-evaluation UI if API fails - set to null to trigger manual evaluation
+      setEvaluationResult(null);
+      setAnswerState('manual-evaluation');
     }
+  };
+
+  const handleManualEvaluation = (isCorrect: boolean) => {
+    const currentQuizItem = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
+    const currentWordResult = wordResults.find(wr => wr.word === currentQuizItem.word);
+    
+    if (currentWordResult) {
+      currentWordResult.definitionCorrect = isCorrect;
+      setWordResults([...wordResults]);
+    }
+    
+    setEvaluationResult({
+      isCorrect,
+      feedback: isCorrect ? "Great! You marked it correct." : "You marked it incorrect. Keep practicing!"
+    });
+    setAnswerState('evaluating');
   };
 
   const handleNextAfterEvaluation = () => {
@@ -952,6 +969,62 @@ export default function Home() {
                         Next <ArrowRight className="ml-2"/>
                       </Button>
                     </CardFooter>
+                  </motion.div>
+                ) : answerState === 'manual-evaluation' ? (
+                  <motion.div
+                    key="manual-evaluation"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <CardContent className="space-y-4">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <Card className="bg-secondary">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Your Answer</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-secondary-foreground">{userAnswer}</p>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-secondary">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Correct Answer</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-secondary-foreground">{currentDef}</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      <Card className="bg-yellow-100 dark:bg-yellow-900/20 border-yellow-500">
+                        <CardHeader>
+                          <CardTitle className="text-xl">Manual Evaluation Required</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="mb-4">The AI evaluation failed. Please compare your answer with the correct definition and mark whether you got it right or wrong.</p>
+                          <div className="flex gap-4 justify-center">
+                            <Button
+                              onClick={() => handleManualEvaluation(true)}
+                              variant="default"
+                              size="lg"
+                              className="bg-green-600 hover:bg-green-700 flex-1"
+                            >
+                              <Check className="mr-2 h-5 w-5" />
+                              I Got It Right
+                            </Button>
+                            <Button
+                              onClick={() => handleManualEvaluation(false)}
+                              variant="destructive"
+                              size="lg"
+                              className="flex-1"
+                            >
+                              <X className="mr-2 h-5 w-5" />
+                              I Got It Wrong
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </CardContent>
                   </motion.div>
                 ) : ( // spelling state
                   <motion.div
