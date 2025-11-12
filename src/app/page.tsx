@@ -944,13 +944,13 @@ export default function Home() {
                                 </Card>
                               </div>
                             )}
-                          <Card className={evaluationResult.isCorrect ? 'bg-green-100 dark:bg-green-900/20 border-green-500' : 'bg-red-100 dark:bg-red-900/20 border-red-500'}>
+                          <Card className={evaluationResult.isCorrect ? 'bg-green-950/40 border-green-600' : 'bg-red-950/40 border-red-600'}>
                               <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                  {evaluationResult.isCorrect ? <Check className="h-6 w-6 text-green-600"/> : <X className="h-6 w-6 text-red-600"/>}
-                                  <CardTitle className="text-xl">{evaluationResult.isCorrect ? "Correct!" : "Incorrect"}</CardTitle>
+                                  {evaluationResult.isCorrect ? <Check className="h-6 w-6 text-green-400"/> : <X className="h-6 w-6 text-red-400"/>}
+                                  <CardTitle className={cn("text-xl", evaluationResult.isCorrect ? "text-green-300" : "text-red-300")}>{evaluationResult.isCorrect ? "Correct!" : "Incorrect"}</CardTitle>
                               </CardHeader>
                               <CardContent>
-                                  <p>{evaluationResult.feedback}</p>
+                                  <p className={evaluationResult.isCorrect ? "text-green-200" : "text-red-200"}>{evaluationResult.feedback}</p>
                               </CardContent>
                           </Card>
                           <div className="flex flex-col items-start gap-2">
@@ -996,18 +996,18 @@ export default function Home() {
                           </CardContent>
                         </Card>
                       </div>
-                      <Card className="bg-yellow-100 dark:bg-yellow-900/20 border-yellow-500">
+                      <Card className="bg-yellow-950/40 border-yellow-600">
                         <CardHeader>
-                          <CardTitle className="text-xl">Manual Evaluation Required</CardTitle>
+                          <CardTitle className="text-xl text-yellow-300">Manual Evaluation Required</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="mb-4">The AI evaluation failed. Please compare your answer with the correct definition and mark whether you got it right or wrong.</p>
+                          <p className="mb-4 text-yellow-200">The AI evaluation failed. Please compare your answer with the correct definition and mark whether you got it right or wrong.</p>
                           <div className="flex gap-4 justify-center">
                             <Button
                               onClick={() => handleManualEvaluation(true)}
                               variant="default"
                               size="lg"
-                              className="bg-green-600 hover:bg-green-700 flex-1"
+                              className="bg-green-700 hover:bg-green-600 text-white flex-1"
                             >
                               <Check className="mr-2 h-5 w-5" />
                               I Got It Right
@@ -1016,7 +1016,7 @@ export default function Home() {
                               onClick={() => handleManualEvaluation(false)}
                               variant="destructive"
                               size="lg"
-                              className="flex-1"
+                              className="bg-red-700 hover:bg-red-600 text-white flex-1"
                             >
                               <X className="mr-2 h-5 w-5" />
                               I Got It Wrong
