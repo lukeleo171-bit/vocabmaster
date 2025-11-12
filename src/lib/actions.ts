@@ -26,22 +26,25 @@ export async function getQuizDefinitionsAction(
     const wordsToFetch = words.filter(w => typeof w === 'string') as string[];
     const customDefinitions = words.filter(w => typeof w !== 'string') as QuizItem[];
 
-    // 1) Get any existing definitions from Supabase first
+    // 1) Get any existing definitions from Supabase first (case-insensitive)
     let existingDefinitions: QuizItem[] = [];
     try {
       if (wordsToFetch.length > 0) {
+        // Use case-insensitive search by searching for lowercase versions
+        const lowerWords = wordsToFetch.map(w => w.toLowerCase());
         const { data, error } = await supabase
           .from('words')
           .select('word, definition')
-          .in('word', wordsToFetch);
+          .or(lowerWords.map(w => `word.ilike.${w}`).join(','));
         if (error) {
-          console.error('Supabase read(words) failed:', error.message);
+          console.error('[Supabase] Read(words) failed:', error.message);
         } else if (data) {
           existingDefinitions = data.map(r => ({ word: r.word, definition: r.definition }));
+          console.log(`[Supabase] Found ${existingDefinitions.length} existing words in DB`);
         }
       }
     } catch (readErr) {
-      console.error('Failed to read existing words from Supabase:', readErr);
+      console.error('[Supabase] Exception during read:', readErr);
     }
 
     // Determine which words still need AI definitions
