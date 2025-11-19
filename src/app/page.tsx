@@ -477,6 +477,7 @@ export default function Home() {
     setQuizHistory([]);
     setQuizState("input");
     setSuggestions([]);
+    setQuizType('definition_spelling'); // Reset to default quiz type
   };
 
   const handleStudyAgain = () => {
@@ -662,7 +663,7 @@ export default function Home() {
                      <div>
                       <FormLabel className="mb-4 block font-medium">Quiz Type</FormLabel>
                       <RadioGroup
-                        defaultValue="definition_spelling"
+                        value={quizType}
                         onValueChange={(value: string) => setQuizType(value as QuizType)}
                         className="grid grid-cols-2 gap-4"
                       >
