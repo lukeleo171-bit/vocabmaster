@@ -1194,7 +1194,7 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 sm:p-6">
       <header className="mb-8 flex items-center gap-3 text-4xl font-headline font-bold text-foreground">
         <BookMarked className="h-10 w-10 text-primary" />
-        Lexiconic
+        Vocabstudy
       </header>
       <main className="flex flex-1 w-full items-center justify-center">
         <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>

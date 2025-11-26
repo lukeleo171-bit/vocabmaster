@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lexiconic",
+  title: "Vocabstudy",
   description: "Master vocabulary with AI-powered quizzes and personalized learning",
 };
 
