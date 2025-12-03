@@ -1347,10 +1347,7 @@ export default function Home() {
                       className="w-full justify-start h-auto p-3 text-left hover:bg-secondary whitespace-normal"
                       onClick={() => handleRandomWordClick(item.word, item.definition)}
                     >
-                      <div className="flex flex-col gap-1 w-full min-w-0">
-                        <span className="font-semibold capitalize break-words">{item.word}</span>
-                        <span className="text-xs text-muted-foreground break-words">{item.definition}</span>
-                      </div>
+                      <span className="font-semibold capitalize break-words">{item.word}</span>
                     </Button>
                   ))
                 )}
