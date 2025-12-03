@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
@@ -52,6 +52,13 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   getEnhancedExplanationAction,
   getQuizDefinitionsAction,
@@ -124,6 +131,7 @@ export default function Home() {
   const [isMatchingCorrect, setIsMatchingCorrect] = useState<boolean[]>([]);
   const [randomWords, setRandomWords] = useState<{ word: string; definition: string }[]>([]);
   const [isLoadingRandomWords, setIsLoadingRandomWords] = useState(false);
+  const [randomWordsCount, setRandomWordsCount] = useState(5);
 
 
   const { toast } = useToast();
@@ -603,7 +611,7 @@ export default function Home() {
   }, [quizState, pastQuizzes, suggestions]);
 
   // Fetch random words when entering input state
-  const fetchRandomWords = async () => {
+  const fetchRandomWords = useCallback(async () => {
     setIsLoadingRandomWords(true);
     try {
       // Fetch all words from the database for true randomization
@@ -617,14 +625,15 @@ export default function Home() {
       }
       
       if (data && data.length > 0) {
-        // Shuffle all words and take 5 random ones
+        // Shuffle all words and take random ones based on user selection
         // Using Fisher-Yates shuffle for better randomization
         const shuffled = [...data];
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
-        setRandomWords(shuffled.slice(0, 5));
+        const count = Math.min(randomWordsCount, shuffled.length);
+        setRandomWords(shuffled.slice(0, count));
       } else {
         setRandomWords([]);
       }
@@ -633,13 +642,13 @@ export default function Home() {
     } finally {
       setIsLoadingRandomWords(false);
     }
-  };
+  }, [randomWordsCount]);
 
   useEffect(() => {
     if (quizState === 'input') {
       fetchRandomWords();
     }
-  }, [quizState]);
+  }, [quizState, fetchRandomWords]);
 
 
   const renderContent = () => {
@@ -1282,6 +1291,27 @@ export default function Home() {
                 <CardDescription>
                   Click words to test your vocabulary knowledge
                 </CardDescription>
+                <div className="flex items-center gap-2 mt-3">
+                  <Label htmlFor="word-count" className="text-xs text-muted-foreground">
+                    Show:
+                  </Label>
+                  <Select
+                    value={randomWordsCount.toString()}
+                    onValueChange={(value) => setRandomWordsCount(parseInt(value))}
+                  >
+                    <SelectTrigger id="word-count" className="h-8 w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3</SelectItem>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="15">15</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-xs text-muted-foreground">words</span>
+                </div>
               </CardHeader>
               <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
                 {isLoadingRandomWords ? (
