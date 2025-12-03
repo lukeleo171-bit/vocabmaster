@@ -582,6 +582,24 @@ export default function Home() {
     }
   };
 
+  const handleAddAllRandomWords = () => {
+    if (randomWords.length === 0) return;
+    
+    const currentWords = form.getValues("words");
+    const allWordEntries = randomWords.map(item => `${item.word} (${item.definition})`).join(", ");
+    
+    if (currentWords.trim() === "") {
+      form.setValue("words", allWordEntries);
+    } else {
+      form.setValue("words", `${currentWords}, ${allWordEntries}`);
+    }
+    
+    toast({
+      title: "Words Added",
+      description: `Added ${randomWords.length} word${randomWords.length > 1 ? 's' : ''} to your quiz.`,
+    });
+  };
+
   const handleClearHistory = () => {
     setPastQuizzes([]);
     setSuggestions([]);
@@ -1338,6 +1356,18 @@ export default function Home() {
                   ))
                 )}
               </CardContent>
+              {randomWords.length > 0 && (
+                <CardFooter className="pt-4">
+                  <Button
+                    onClick={handleAddAllRandomWords}
+                    className="w-full"
+                    variant="secondary"
+                  >
+                    <PlusSquare className="mr-2 h-4 w-4" />
+                    Add All Words
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           </aside>
         )}
