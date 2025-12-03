@@ -1192,9 +1192,18 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 sm:p-6">
-      <header className="mb-8 flex items-center gap-3 text-4xl font-headline font-bold text-foreground">
-        <BookMarked className="h-10 w-10 text-primary" />
-        Vocabstudy
+      <header className="mb-8 flex flex-col items-center gap-3">
+        {/* Bar Chart Icon */}
+        <div className="flex items-end gap-1.5 h-12">
+          <div className="w-3 bg-primary/80 rounded-t h-[40%]"></div>
+          <div className="w-3 bg-primary/80 rounded-t h-[70%]"></div>
+          <div className="w-3 bg-primary/80 rounded-t h-full"></div>
+        </div>
+        {/* Logo Text */}
+        <div className="text-4xl font-headline font-bold">
+          <span className="text-foreground">vocab</span>
+          <span className="text-primary/90">study</span>
+        </div>
       </header>
       <main className="flex flex-1 w-full items-center justify-center">
         <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
