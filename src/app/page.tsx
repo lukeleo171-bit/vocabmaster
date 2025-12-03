@@ -574,11 +574,10 @@ export default function Home() {
 
   const handleRandomWordClick = (word: string, definition: string) => {
     const currentWords = form.getValues("words");
-    const newWordEntry = `${word} (${definition})`;
     if (currentWords.trim() === "") {
-      form.setValue("words", newWordEntry);
+      form.setValue("words", word);
     } else {
-      form.setValue("words", `${currentWords}, ${newWordEntry}`);
+      form.setValue("words", `${currentWords}, ${word}`);
     }
   };
 
@@ -586,7 +585,7 @@ export default function Home() {
     if (randomWords.length === 0) return;
     
     const currentWords = form.getValues("words");
-    const allWordEntries = randomWords.map(item => `${item.word} (${item.definition})`).join(", ");
+    const allWordEntries = randomWords.map(item => item.word).join(", ");
     
     if (currentWords.trim() === "") {
       form.setValue("words", allWordEntries);
