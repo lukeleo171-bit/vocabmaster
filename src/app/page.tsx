@@ -572,6 +572,58 @@ export default function Home() {
     setSuggestions([]);
   };
 
+  const handleRemoveDuplicates = () => {
+    const currentInput = form.getValues("words");
+    if (!currentInput.trim()) return;
+
+    // Parse the input to get entries
+    const entries = parseWordInput(currentInput);
+    
+    // Track seen words (case-insensitive) and keep first occurrence
+    const seen = new Set<string>();
+    const uniqueEntries: (string | QuizItem)[] = [];
+    
+    for (const entry of entries) {
+      let word: string;
+      if (typeof entry === 'string') {
+        // Extract word from "word (definition)" or just "word"
+        const match = entry.match(/^(.*?)\s*\(.*\)$/);
+        word = match ? match[1].trim() : entry.trim();
+      } else {
+        word = entry.word;
+      }
+      
+      const wordLower = word.toLowerCase();
+      if (!seen.has(wordLower)) {
+        seen.add(wordLower);
+        uniqueEntries.push(entry);
+      }
+    }
+    
+    // Reconstruct the string
+    const uniqueString = uniqueEntries.map(entry => {
+      if (typeof entry === 'string') {
+        return entry;
+      }
+      return `${entry.word} (${entry.definition})`;
+    }).join(", ");
+    
+    form.setValue("words", uniqueString);
+    
+    const removedCount = entries.length - uniqueEntries.length;
+    if (removedCount > 0) {
+      toast({
+        title: "Duplicates Removed",
+        description: `Removed ${removedCount} duplicate word${removedCount > 1 ? 's' : ''}.`,
+      });
+    } else {
+      toast({
+        title: "No Duplicates",
+        description: "No duplicate words found.",
+      });
+    }
+  };
+
   const handleRandomWordClick = (word: string, definition: string) => {
     const currentWords = form.getValues("words");
     if (currentWords.trim() === "") {
@@ -709,6 +761,18 @@ export default function Home() {
                               onChange={(e) => handleWordInputChange(e.target.value)}
                             />
                           </FormControl>
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleRemoveDuplicates}
+                              className="mt-2"
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Remove Duplicates
+                            </Button>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
