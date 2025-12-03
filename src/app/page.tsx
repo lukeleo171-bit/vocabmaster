@@ -1222,6 +1222,26 @@ export default function Home() {
 
         const finalTotalPoints = isMatchingQuiz ? definitions.length * 2 : totalPoints;
         const finalDisplayScore = isMatchingQuiz ? finalScore * 2 : finalScore;
+        const percentage = finalTotalPoints > 0 ? Math.round((finalDisplayScore / finalTotalPoints) * 100) : 0;
+
+        // Get feedback message based on percentage
+        const getFeedbackMessage = (percent: number): string => {
+          if (percent === 100) {
+            return "Perfect score! You've mastered all these words! 🌟";
+          } else if (percent >= 90) {
+            return "Outstanding work! You're doing excellently! 🎉";
+          } else if (percent >= 80) {
+            return "Great job! You're well on your way to mastery! 👍";
+          } else if (percent >= 70) {
+            return "Good effort! Keep practicing to improve! 💪";
+          } else if (percent >= 60) {
+            return "Not bad! Review the missed words and try again! 📚";
+          } else if (percent >= 50) {
+            return "Keep studying! Practice makes perfect! ✨";
+          } else {
+            return "Don't give up! Review the words and try again! 🔄";
+          }
+        };
 
         const incorrect = finalTotalPoints - finalDisplayScore;
         const chartData = [
@@ -1255,8 +1275,13 @@ export default function Home() {
                     <Award className="h-10 w-10"/>
                 </div>
                 <CardTitle className="font-headline text-3xl mt-4">Quiz Complete!</CardTitle>
-                <CardDescription>
-                  You scored {finalDisplayScore} out of {finalTotalPoints}.
+                <CardDescription className="space-y-2">
+                  <div className="text-lg font-semibold">
+                    You scored {finalDisplayScore} out of {finalTotalPoints} ({percentage}%)
+                  </div>
+                  <div className="text-base text-muted-foreground mt-2">
+                    {getFeedbackMessage(percentage)}
+                  </div>
                 </CardDescription>
               </CardHeader>
               <CardContent>
