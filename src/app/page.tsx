@@ -76,6 +76,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 type WordInputForm = z.infer<typeof wordInputSchema>;
 
@@ -121,6 +122,8 @@ export default function Home() {
   const [selectedDefinition, setSelectedDefinition] = useState<string | null>(null);
   const [matchedPairs, setMatchedPairs] = useState<MatchedPair[]>([]);
   const [isMatchingCorrect, setIsMatchingCorrect] = useState<boolean[]>([]);
+  const [randomWords, setRandomWords] = useState<{ word: string; definition: string }[]>([]);
+  const [isLoadingRandomWords, setIsLoadingRandomWords] = useState(false);
 
 
   const { toast } = useToast();
@@ -561,6 +564,16 @@ export default function Home() {
     setSuggestions([]);
   };
 
+  const handleRandomWordClick = (word: string, definition: string) => {
+    const currentWords = form.getValues("words");
+    const newWordEntry = `${word} (${definition})`;
+    if (currentWords.trim() === "") {
+      form.setValue("words", newWordEntry);
+    } else {
+      form.setValue("words", `${currentWords}, ${newWordEntry}`);
+    }
+  };
+
   const handleClearHistory = () => {
     setPastQuizzes([]);
     setSuggestions([]);
@@ -588,6 +601,38 @@ export default function Home() {
       }
     }
   }, [quizState, pastQuizzes, suggestions]);
+
+  // Fetch random words when entering input state
+  const fetchRandomWords = async () => {
+    setIsLoadingRandomWords(true);
+    try {
+      const { data, error } = await supabase
+        .from('words')
+        .select('word, definition')
+        .limit(10);
+      
+      if (error) {
+        console.error('Error fetching random words:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        // Shuffle and take 5 random words
+        const shuffled = [...data].sort(() => Math.random() - 0.5);
+        setRandomWords(shuffled.slice(0, 5));
+      }
+    } catch (err) {
+      console.error('Failed to fetch random words:', err);
+    } finally {
+      setIsLoadingRandomWords(false);
+    }
+  };
+
+  useEffect(() => {
+    if (quizState === 'input') {
+      fetchRandomWords();
+    }
+  }, [quizState]);
 
 
   const renderContent = () => {
@@ -1205,8 +1250,66 @@ export default function Home() {
           <span className="text-primary/90">study</span>
         </div>
       </header>
-      <main className="flex flex-1 w-full items-center justify-center">
-        <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+      <main className={cn(
+        "flex flex-1 w-full",
+        quizState === 'input' ? "flex-row gap-6 max-w-7xl" : "items-center justify-center"
+      )}>
+        {quizState === 'input' && (
+          <aside className="hidden lg:block w-80 shrink-0">
+            <Card className="sticky top-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Random Words
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchRandomWords}
+                    disabled={isLoadingRandomWords}
+                  >
+                    <RefreshCw className={cn("h-4 w-4", isLoadingRandomWords && "animate-spin")} />
+                  </Button>
+                </div>
+                <CardDescription>
+                  Click words to test your vocabulary knowledge
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
+                {isLoadingRandomWords ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : randomWords.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No words available. Start adding words to your database!
+                  </p>
+                ) : (
+                  randomWords.map((item, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      className="w-full justify-start h-auto p-3 text-left hover:bg-secondary"
+                      onClick={() => handleRandomWordClick(item.word, item.definition)}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="font-semibold capitalize">{item.word}</span>
+                        <span className="text-xs text-muted-foreground line-clamp-2">{item.definition}</span>
+                      </div>
+                    </Button>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </aside>
+        )}
+        <div className={cn(
+          "flex-1",
+          quizState === 'input' ? "" : "flex items-center justify-center"
+        )}>
+          <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+        </div>
       </main>
       <Dialog open={isEnhancementOpen} onOpenChange={setIsEnhancementOpen}>
         <DialogContent>
