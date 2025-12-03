@@ -606,10 +606,10 @@ export default function Home() {
   const fetchRandomWords = async () => {
     setIsLoadingRandomWords(true);
     try {
+      // Fetch all words from the database for true randomization
       const { data, error } = await supabase
         .from('words')
-        .select('word, definition')
-        .limit(10);
+        .select('word, definition');
       
       if (error) {
         console.error('Error fetching random words:', error);
@@ -617,9 +617,16 @@ export default function Home() {
       }
       
       if (data && data.length > 0) {
-        // Shuffle and take 5 random words
-        const shuffled = [...data].sort(() => Math.random() - 0.5);
+        // Shuffle all words and take 5 random ones
+        // Using Fisher-Yates shuffle for better randomization
+        const shuffled = [...data];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
         setRandomWords(shuffled.slice(0, 5));
+      } else {
+        setRandomWords([]);
       }
     } catch (err) {
       console.error('Failed to fetch random words:', err);
