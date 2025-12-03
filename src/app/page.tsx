@@ -1290,12 +1290,12 @@ export default function Home() {
                     <Button
                       key={index}
                       variant="outline"
-                      className="w-full justify-start h-auto p-3 text-left hover:bg-secondary"
+                      className="w-full justify-start h-auto p-3 text-left hover:bg-secondary whitespace-normal"
                       onClick={() => handleRandomWordClick(item.word, item.definition)}
                     >
-                      <div className="flex flex-col gap-1">
-                        <span className="font-semibold capitalize">{item.word}</span>
-                        <span className="text-xs text-muted-foreground line-clamp-2">{item.definition}</span>
+                      <div className="flex flex-col gap-1 w-full min-w-0">
+                        <span className="font-semibold capitalize break-words">{item.word}</span>
+                        <span className="text-xs text-muted-foreground break-words">{item.definition}</span>
                       </div>
                     </Button>
                   ))
