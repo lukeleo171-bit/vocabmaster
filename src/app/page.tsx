@@ -1481,6 +1481,44 @@ export default function Home() {
           </div>
         </DialogContent>
       </Dialog>
+      <footer className="mt-12 w-full max-w-7xl px-4 pb-8">
+        <Card className="bg-secondary/50">
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-3 gap-6 text-sm">
+              <div>
+                <h3 className="font-semibold mb-3 text-foreground">Getting Started</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>• Enter words separated by commas</li>
+                  <li>• Add definitions: word (definition)</li>
+                  <li>• Click random words to test vocabulary</li>
+                  <li>• Use "Add All Words" for quick setup</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-3 text-foreground">Quiz Types</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>• <strong>Definition & Spelling:</strong> Test both</li>
+                  <li>• <strong>Definition Only:</strong> Focus on meanings</li>
+                  <li>• <strong>Multiple Choice:</strong> Choose correct answer</li>
+                  <li>• <strong>Matching:</strong> Match words to definitions</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-3 text-foreground">Tips & Features</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>• Remove duplicates before starting</li>
+                  <li>• Practice missed words after quiz</li>
+                  <li>• Use enhancements for deeper learning</li>
+                  <li>• Track progress with quiz history</li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-6 pt-6 border-t border-border text-center text-xs text-muted-foreground">
+              <p>&copy; {new Date().getFullYear()} Vocabstudy. Master vocabulary with AI-powered learning.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </footer>
     </div>
   );
 }
