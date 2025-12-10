@@ -1374,11 +1374,11 @@ export default function Home() {
       </header>
       <main className={cn(
         "flex flex-1 w-full",
-        quizState === 'input' ? "flex-row gap-6 max-w-7xl" : "items-center justify-center"
+        quizState === 'input' ? "flex-col lg:flex-row gap-6 max-w-7xl" : "items-center justify-center"
       )}>
         {quizState === 'input' && (
-          <aside className="hidden lg:block w-80 shrink-0">
-            <Card className="sticky top-6">
+          <aside className="w-full lg:w-80 shrink-0">
+            <Card className="lg:sticky lg:top-6">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -1419,7 +1419,7 @@ export default function Home() {
                   <span className="text-xs text-muted-foreground">words</span>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
+              <CardContent className="space-y-2 max-h-[300px] lg:max-h-[600px] overflow-y-auto">
                 {isLoadingRandomWords ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
