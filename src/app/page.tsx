@@ -1377,7 +1377,7 @@ export default function Home() {
         quizState === 'input' ? "flex-col lg:flex-row gap-6 max-w-7xl" : "items-center justify-center"
       )}>
         {quizState === 'input' && (
-          <aside className="w-full lg:w-80 shrink-0">
+          <aside className="w-full lg:w-80 shrink-0 order-2 lg:order-1">
             <Card className="lg:sticky lg:top-6">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1458,7 +1458,7 @@ export default function Home() {
         )}
         <div className={cn(
           "flex-1",
-          quizState === 'input' ? "" : "flex items-center justify-center"
+          quizState === 'input' ? "order-1 lg:order-2" : "flex items-center justify-center"
         )}>
           <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
         </div>
