@@ -5,6 +5,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Vocabstudy",
   description: "Master vocabulary with AI-powered quizzes and personalized learning",
+  icons: {
+    icon: '/icon.svg',
+    apple: '/apple-icon.svg'
+  }
 };
 
 export default function RootLayout({

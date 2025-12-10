@@ -1,0 +1,8 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="#1E1B2E"/>
+  <!-- Three bars of increasing height - scaled up for app icon -->
+  <rect x="40" y="110" width="20" height="50" rx="5" fill="#A78BFA"/>
+  <rect x="70" y="70" width="20" height="90" rx="5" fill="#A78BFA"/>
+  <rect x="100" y="20" width="20" height="140" rx="5" fill="#A78BFA"/>
+</svg>
