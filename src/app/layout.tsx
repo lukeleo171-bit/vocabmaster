@@ -6,8 +6,21 @@ export const metadata: Metadata = {
   title: "Vocabstudy",
   description: "Master vocabulary with AI-powered quizzes and personalized learning",
   icons: {
-    icon: '/icon.svg',
-    apple: '/apple-icon.svg'
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' }
+    ],
+    apple: [
+      { url: '/apple-icon.svg', sizes: '180x180', type: 'image/svg+xml' }
+    ],
+    shortcut: '/icon.svg'
+  },
+  manifest: '/manifest.json',
+  themeColor: '#8B5CF6',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Vocabstudy'
   }
 };
 
@@ -19,6 +32,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-icon.svg" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#8B5CF6" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
