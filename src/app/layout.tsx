@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
+import { PWAInstall } from "@/components/pwa-install";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -48,6 +49,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
+        <PWAInstall />
         {children}
         <Toaster />
       </body>
