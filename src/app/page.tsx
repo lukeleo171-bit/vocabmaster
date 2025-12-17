@@ -220,7 +220,8 @@ export default function Home() {
         if (char === '(') inParentheses = true;
         if (char === ')') inParentheses = false;
 
-        if (char === ',' && !inParentheses) {
+        // Split on comma or newline (but not inside parentheses)
+        if ((char === ',' || char === '\n') && !inParentheses) {
             if (current.trim()) {
                 entries.push(current.trim());
             }
@@ -738,7 +739,7 @@ export default function Home() {
                   Enter Your Vocabulary
                 </CardTitle>
                 <CardDescription>
-                  Enter words separated by commas. You can also provide your own definitions like this: word (your definition).
+                  Enter words separated by commas or press Enter for a new line. You can also provide your own definitions like this: word (your definition).
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1488,7 +1489,7 @@ export default function Home() {
               <div>
                 <h3 className="font-semibold mb-3 text-foreground">Getting Started</h3>
                 <ul className="space-y-2 text-muted-foreground">
-                  <li>• Enter words separated by commas</li>
+                  <li>• Enter words separated by commas or press Enter</li>
                   <li>• Add definitions: word (definition)</li>
                   <li>• Click random words to test vocabulary</li>
                   <li>• Use "Add All Words" for quick setup</li>
