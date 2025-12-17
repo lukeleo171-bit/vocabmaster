@@ -215,11 +215,6 @@ export default function Home() {
     // Normalize line endings: convert \r\n to \n, then \r to \n
     const normalizedInput = input.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     
-    // Debug: log to verify newlines are present
-    if (normalizedInput.includes('\n')) {
-      console.log('Found newlines in input:', normalizedInput.split('\n').length - 1, 'newline(s)');
-    }
-    
     const entries: (string | QuizItem)[] = [];
     let current = '';
     let inParentheses = false;
