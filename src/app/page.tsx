@@ -212,11 +212,20 @@ export default function Home() {
   }
 
   const parseWordInput = (input: string): (string | QuizItem)[] => {
+    // Normalize line endings: convert \r\n to \n, then \r to \n
+    const normalizedInput = input.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Debug: log to verify newlines are present
+    if (normalizedInput.includes('\n')) {
+      console.log('Found newlines in input:', normalizedInput.split('\n').length - 1, 'newline(s)');
+    }
+    
     const entries: (string | QuizItem)[] = [];
     let current = '';
     let inParentheses = false;
-    for (let i = 0; i < input.length; i++) {
-        const char = input[i];
+    
+    for (let i = 0; i < normalizedInput.length; i++) {
+        const char = normalizedInput[i];
         if (char === '(') inParentheses = true;
         if (char === ')') inParentheses = false;
 
@@ -230,6 +239,8 @@ export default function Home() {
             current += char;
         }
     }
+    
+    // Add the last entry if there's any remaining content
     if (current.trim()) {
         entries.push(current.trim());
     }
@@ -759,7 +770,10 @@ export default function Home() {
                               placeholder="e.g., egregious (outstandingly bad), ephemeral, esoteric"
                               className="min-h-[150px] resize-y"
                               {...field}
-                              onChange={(e) => handleWordInputChange(e.target.value)}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleWordInputChange(e.target.value);
+                              }}
                             />
                           </FormControl>
                           <div className="flex justify-end">
