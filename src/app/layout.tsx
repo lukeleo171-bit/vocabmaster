@@ -47,6 +47,35 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,700&display=swap"
           rel="stylesheet"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator && !window.__SW_REGISTERED__) {
+                window.__SW_REGISTERED__ = true;
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function(registration) {
+                      console.log('SW registered early:', registration.scope);
+                      if (registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                      }
+                      // Ensure service worker activates
+                      if (registration.installing) {
+                        registration.installing.addEventListener('statechange', function() {
+                          if (this.state === 'activated' && !navigator.serviceWorker.controller) {
+                            window.location.reload();
+                          }
+                        });
+                      }
+                    })
+                    .catch(function(error) {
+                      console.log('SW registration failed:', error);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className="font-body antialiased">
         <PWAInstall />

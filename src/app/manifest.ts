@@ -44,5 +44,7 @@ export default function manifest(): MetadataRoute.Manifest {
         type: 'image/png',
       },
     ],
+    // Ensure the app is installable
+    prefer_related_applications: false,
   }
 }
