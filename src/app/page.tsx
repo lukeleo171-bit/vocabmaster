@@ -1249,7 +1249,6 @@ export default function Home() {
                     </motion.div>
                   );
                 })()
-                )}
               </AnimatePresence>
             </Card>
           </motion.div>
