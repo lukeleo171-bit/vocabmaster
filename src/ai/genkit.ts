@@ -7,11 +7,9 @@ const apiKey =
   process.env.GEMINI_API_KEY ||
   '';
 
-if (!apiKey) {
-  // This will surface clearly in logs if the key is missing in Vercel
-  console.error('Missing Google AI API key. Set GOOGLE_API_KEY in environment variables.');
-}
-
+// Initialize Genkit
+// Note: During build, if API key is missing, Genkit will still initialize
+// but API calls will fail at runtime (which is expected)
 export const ai = genkit({
   plugins: [googleAI({ apiKey })],
   model: 'googleai/gemini-2.5-flash',
