@@ -1179,36 +1179,76 @@ export default function Home() {
                       </Card>
                     </CardContent>
                   </motion.div>
-                ) : ( // spelling state
-                  <motion.div
-                    key="spelling"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                  >
-                    <CardContent>
-                      <Form {...form}>
-                        <form onSubmit={(e) => { e.preventDefault(); handleSpellingSubmit(); }}>
-                            <FormLabel className="font-medium">Now, spell the word.</FormLabel>
-                            <div className="flex items-center gap-2 mt-4">
-                                <SpellCheck className="text-muted-foreground" />
-                                <Input
-                                    value={spellingAnswer}
-                                    onChange={(e) => setSpellingAnswer(e.target.value)}
-                                    placeholder="Type the spelling here..."
-                                    className="flex-1"
-                                    autoFocus
-                                />
-                            </div>
-                        </form>
-                      </Form>
-                    </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSpellingSubmit} className="w-full">
-                        Check Spelling
-                      </Button>
-                    </CardFooter>
-                  </motion.div>
+                ) : (() => {
+                  // spelling state - compute spelling feedback
+                  const currentQuizItem = quizState === 'practice' ? practiceWords[currentIndex] : definitions[currentIndex];
+                  const trimmedAnswer = spellingAnswer.trim();
+                  const isCorrect = trimmedAnswer.toLowerCase() === currentQuizItem.word.toLowerCase();
+                  const isClose = trimmedAnswer.length > 0 && (
+                    currentQuizItem.word.toLowerCase().startsWith(trimmedAnswer.toLowerCase()) || 
+                    trimmedAnswer.toLowerCase().startsWith(currentQuizItem.word.toLowerCase())
+                  );
+                  const isWrong = trimmedAnswer.length > 0 && !isClose && trimmedAnswer.length >= currentQuizItem.word.length * 0.5;
+                  
+                  return (
+                    <motion.div
+                      key="spelling"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                    >
+                      <CardContent>
+                        <Form {...form}>
+                          <form onSubmit={(e) => { e.preventDefault(); handleSpellingSubmit(); }}>
+                              <FormLabel className="font-medium">Now, spell the word.</FormLabel>
+                              <div className="flex flex-col gap-2 mt-4">
+                                <div className="flex items-center gap-2">
+                                  <SpellCheck className="text-muted-foreground" />
+                                  <Input
+                                      value={spellingAnswer}
+                                      onChange={(e) => setSpellingAnswer(e.target.value)}
+                                      placeholder="Type the spelling here..."
+                                      className={cn(
+                                        "flex-1",
+                                        isCorrect && "border-green-500 bg-green-50 dark:bg-green-950/20",
+                                        isWrong && "border-red-500 bg-red-50 dark:bg-red-950/20"
+                                      )}
+                                      autoFocus
+                                  />
+                                </div>
+                                {trimmedAnswer && (
+                                  <>
+                                    {isCorrect && (
+                                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium">
+                                        <Check className="h-4 w-4" />
+                                        <span>Correct spelling!</span>
+                                      </div>
+                                    )}
+                                    {isWrong && (
+                                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm font-medium">
+                                        <X className="h-4 w-4" />
+                                        <span>Incorrect spelling. Try again!</span>
+                                      </div>
+                                    )}
+                                    {!isCorrect && !isWrong && (
+                                      <div className="text-muted-foreground text-sm">
+                                        Keep typing...
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                          </form>
+                        </Form>
+                      </CardContent>
+                      <CardFooter>
+                        <Button onClick={handleSpellingSubmit} className="w-full">
+                          Check Spelling
+                        </Button>
+                      </CardFooter>
+                    </motion.div>
+                  );
+                })()
                 )}
               </AnimatePresence>
             </Card>
