@@ -5,3 +5,16 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+# Environment variables should be set in Firebase Console:
+# Project Settings > App Hosting > Environment Variables
+#
+# Required variables:
+# - GOOGLE_API_KEY (or GOOGLEAI_API_KEY or GEMINI_API_KEY) - For Genkit AI
+# - NEXT_PUBLIC_SUPABASE_URL - Supabase project URL
+# - NEXT_PUBLIC_SUPABASE_ANON_KEY - Supabase anonymous key
+# - POSTGRES_URL (optional) - For direct database access
+# - POSTGRES_USER (optional)
+# - POSTGRES_PASSWORD (optional)
+# - POSTGRES_HOST (optional)
+# - POSTGRES_DATABASE (optional)
