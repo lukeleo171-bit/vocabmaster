@@ -1206,7 +1206,7 @@ export default function Home() {
                         <>
                           <CardContent>
                             <form onSubmit={(e) => { e.preventDefault(); handleSpellingSubmit(); }}>
-                              <FormLabel className="font-medium">Now, spell the word.</FormLabel>
+                              <Label className="font-medium">Now, spell the word.</Label>
                               <div className="flex items-center gap-2 mt-4">
                                 <SpellCheck className="text-muted-foreground" />
                                 <Input
@@ -1234,13 +1234,13 @@ export default function Home() {
                         <>
                           <CardContent className="space-y-4">
                             <div className="space-y-2">
-                              <FormLabel className="font-medium">Your spelling:</FormLabel>
+                              <Label className="font-medium">Your spelling:</Label>
                               <div className="p-3 rounded-md bg-secondary">
                                 <p className="text-secondary-foreground">{spellingAnswer.trim() || "(empty)"}</p>
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <FormLabel className="font-medium">Correct spelling:</FormLabel>
+                              <Label className="font-medium">Correct spelling:</Label>
                               <div className="p-3 rounded-md bg-secondary">
                                 <p className="text-secondary-foreground">{currentQuizItem.word}</p>
                               </div>
