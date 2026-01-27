@@ -1205,22 +1205,20 @@ export default function Home() {
                       {!spellingChecked ? (
                         <>
                           <CardContent>
-                            <Form {...form}>
-                              <form onSubmit={(e) => { e.preventDefault(); handleSpellingSubmit(); }}>
-                                <FormLabel className="font-medium">Now, spell the word.</FormLabel>
-                                <div className="flex items-center gap-2 mt-4">
-                                  <SpellCheck className="text-muted-foreground" />
-                                  <Input
-                                    value={spellingAnswer}
-                                    onChange={(e) => setSpellingAnswer(e.target.value)}
-                                    placeholder="Type the spelling here..."
-                                    className="flex-1"
-                                    autoFocus
-                                    disabled={spellingChecked}
-                                  />
-                                </div>
-                              </form>
-                            </Form>
+                            <form onSubmit={(e) => { e.preventDefault(); handleSpellingSubmit(); }}>
+                              <FormLabel className="font-medium">Now, spell the word.</FormLabel>
+                              <div className="flex items-center gap-2 mt-4">
+                                <SpellCheck className="text-muted-foreground" />
+                                <Input
+                                  value={spellingAnswer}
+                                  onChange={(e) => setSpellingAnswer(e.target.value)}
+                                  placeholder="Type the spelling here..."
+                                  className="flex-1"
+                                  autoFocus
+                                  disabled={spellingChecked}
+                                />
+                              </div>
+                            </form>
                           </CardContent>
                           <CardFooter>
                             <Button 
